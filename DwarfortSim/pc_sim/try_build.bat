@@ -11,6 +11,8 @@ g++.exe -std=c++11 -DHEADLESS=10000 ^
     C:\repos\Daydream\DwarfortSim\tasks.cpp ^
     C:\repos\Daydream\DwarfortSim\dwarves.cpp ^
     C:\repos\Daydream\DwarfortSim\pathfind.cpp ^
+    C:\repos\Daydream\DwarfortSim\animals.cpp ^
+    C:\repos\Daydream\DwarfortSim\goblins.cpp ^
     C:\repos\Daydream\DwarfortSim\fortplan.cpp ^
     C:\repos\Daydream\DwarfortSim\renderer.cpp ^
     -o C:\repos\Daydream\DwarfortSim\pc_sim\DwarfortSim_hl.exe ^

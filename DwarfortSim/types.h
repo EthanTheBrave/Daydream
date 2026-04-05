@@ -23,6 +23,7 @@ enum TileType : uint8_t {
     TILE_CHAIR   = 14,  // 'h'  placed chair (passable)
     TILE_COFFIN_T = 15, // '|'  placed coffin/sarcophagus (impassable)
     TILE_FARM    = 16,  // ':'  underground mushroom farm plot (passable)
+    // NOTE: Animals are not tile types — they are entities in the animal array
 };
 
 // ----------------------------------------------------------------

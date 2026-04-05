@@ -96,8 +96,24 @@
 #define HALL_CHAIRS        4
 #define BED_COUNT  NUM_DWARVES
 
+// --- Animals -------------------------------------------------------
+#define MAX_ANIMALS         8    // max sheep + cats on map at once
+#define ANIMAL_WANDER_TICKS 3    // ticks between animal moves
+#define CAT_HAPPINESS_RADIUS 3   // tiles away from cat that dwarves feel happy
+#define SHEEP_SPAWN_INTERVAL 600 // ticks between new sheep spawning (surface)
+#define CAT_SPAWN_INTERVAL   900 // ticks between new cats spawning (inside fort)
+#define MAX_SHEEP            4
+#define MAX_CATS             4
+
+// --- Migrants ------------------------------------------------------
+#define MIGRANT_WAVE_INTERVAL  800   // ticks between migrant waves
+#define MIGRANT_WAVE_MIN         1   // min migrants per wave
+#define MIGRANT_WAVE_MAX         3   // max migrants per wave
+#define MIGRANT_START_TICK     400   // first wave not before this tick
+#define MIGRANT_POP_CAP         20   // hard cap on total dwarves
+
 // --- Entity limits -------------------------------------------------
-#define MAX_DWARVES       10
+#define MAX_DWARVES       24     // Must be >= MIGRANT_POP_CAP + NUM_DWARVES
 #define MAX_TASKS        300
 #define MAX_PATH_LEN     200     // Increased for wider map
 

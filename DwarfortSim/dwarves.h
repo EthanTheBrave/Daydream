@@ -10,5 +10,8 @@ extern int   gDrinkSupply;
 
 void dwarfInit(int count, int startX, int startY);
 
+// Spawn N new migrants arriving from the left edge
+void dwarfSpawnMigrants(int count);
+
 // Advance all dwarves one simulation tick
 void dwarvesTick();

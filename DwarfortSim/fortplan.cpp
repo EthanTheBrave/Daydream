@@ -468,6 +468,28 @@ static void manageMushProcessing() {
 }
 
 // ----------------------------------------------------------------
+//  Migrants
+// ----------------------------------------------------------------
+static void manageMigrants() {
+    if (gFortFallen) return;
+    if (gTick < MIGRANT_START_TICK) return;
+    // Only after entrance is dug (dwarves need somewhere to go)
+    if (gFortStage < FS_MAIN_HALL) return;
+    // Cap check
+    int alive = 0;
+    for (int i = 0; i < gNumDwarves; i++) if (!gDwarves[i].dead) alive++;
+    if (alive >= MIGRANT_POP_CAP) return;
+
+    // Wave trigger: every MIGRANT_WAVE_INTERVAL ticks after MIGRANT_START_TICK
+    uint32_t elapsed = gTick - MIGRANT_START_TICK;
+    if (elapsed % MIGRANT_WAVE_INTERVAL != 0) return;
+
+    int count = MIGRANT_WAVE_MIN + random(0, MIGRANT_WAVE_MAX - MIGRANT_WAVE_MIN + 1);
+    count = min(count, MIGRANT_POP_CAP - alive);
+    if (count > 0) dwarfSpawnMigrants(count);
+}
+
+// ----------------------------------------------------------------
 //  Init
 // ----------------------------------------------------------------
 void fortPlanInit() {
@@ -496,6 +518,7 @@ void fortPlanTick() {
 
     manageWoodSupply();
     manageBurials();
+    manageMigrants();
 
     switch (gFortStage) {
 

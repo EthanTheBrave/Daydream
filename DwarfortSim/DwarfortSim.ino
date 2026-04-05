@@ -19,6 +19,8 @@
 #include "tasks.h"
 #include "dwarves.h"
 #include "fortplan.h"
+#include "animals.h"
+#include "goblins.h"
 #include "renderer.h"
 
 // ----------------------------------------------------------------
@@ -59,6 +61,8 @@ void setup() {
     mapInit(MAP_SEED);
     tasksInit();
     fortPlanInit();
+    animalsInit();
+    goblinsInit();
 
     // Dwarves spawn on the surface, just left of the hillface, vertically centred
     int spawnX = HILL_START_X - 2;
@@ -88,6 +92,8 @@ void loop() {
         sLastTick = now;
         fortPlanTick();
         dwarvesTick();
+        animalsTick();
+        goblinsTick();
         renderFrame();
     }
 }

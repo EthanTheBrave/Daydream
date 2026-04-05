@@ -2,6 +2,8 @@
 #include "map.h"
 #include "dwarves.h"
 #include "fortplan.h"
+#include "animals.h"
+#include "goblins.h"
 #include "config.h"
 #include "types.h"
 #include <TFT_eSPI.h>
@@ -55,6 +57,13 @@ static bool dwarfAt(int x, int y) {
     return false;
 }
 
+static Animal* animalAt(int x, int y) {
+    for (int i = 0; i < gNumAnimals; i++)
+        if (gAnimals[i].active && gAnimals[i].x == x && gAnimals[i].y == y)
+            return &gAnimals[i];
+    return nullptr;
+}
+
 // ----------------------------------------------------------------
 static uint16_t roomBg(RoomType r) {
     switch (r) {
@@ -79,9 +88,24 @@ static void tileVisual(int x, int y, char* ch, uint16_t* fg, uint16_t* bg) {
         *ch = ' '; *fg = C_BLACK; return;
     }
 
-    // Dwarf overrides everything (CP437 char 1 = smiley)
+    // Goblin — rendered above dwarves (threat visibility)
+    for (int i = 0; i < gNumGoblins; i++) {
+        if (gGoblins[i].active && gGoblins[i].x == x && gGoblins[i].y == y) {
+            *ch = 'g'; *fg = C_GREEN; return;
+        }
+    }
+
+    // Dwarf overrides everything else (CP437 char 1 = smiley)
     if (dwarfAt(x, y)) {
         *ch = '\x01'; *fg = C_YELLOW; return;
+    }
+
+    // Animal rendering
+    Animal* an = animalAt(x, y);
+    if (an) {
+        *bg = roomBg(t.roomType);
+        if (an->type == ANIMAL_SHEEP) { *ch = 's'; *fg = C_WHITE;  return; }
+        if (an->type == ANIMAL_CAT)   { *ch = 'c'; *fg = C_ORANGE; return; }
     }
 
     // Item on a passable tile — show item, use room bg
@@ -186,8 +210,10 @@ static void drawCell(int x, int y) {
 // ----------------------------------------------------------------
 static void drawStatus() {
     char buf[80];
+    int alive = 0;
+    for (int i = 0; i < gNumDwarves; i++) if (!gDwarves[i].dead) alive++;
     snprintf(buf, sizeof(buf), "T:%-5u @%d F:%d Dr:%d  %s",
-             (unsigned int)gTick, gNumDwarves,
+             (unsigned int)gTick, alive,
              gFoodSupply, gDrinkSupply,
              gStageName);
 
@@ -258,6 +284,16 @@ void renderFrame() {
         if (!gDwarves[i].active) continue;
         mapMarkDirty(gDwarves[i].x,    gDwarves[i].y);
         mapMarkDirty(gDwarves[i].lastX, gDwarves[i].lastY);
+    }
+    for (int i = 0; i < gNumAnimals; i++) {
+        if (!gAnimals[i].active) continue;
+        mapMarkDirty(gAnimals[i].x,    gAnimals[i].y);
+        mapMarkDirty(gAnimals[i].lastX, gAnimals[i].lastY);
+    }
+    for (int i = 0; i < gNumGoblins; i++) {
+        if (!gGoblins[i].active) continue;
+        mapMarkDirty(gGoblins[i].x,    gGoblins[i].y);
+        mapMarkDirty(gGoblins[i].lastX, gGoblins[i].lastY);
     }
 
     for (int y = 0; y < MAP_H; y++)

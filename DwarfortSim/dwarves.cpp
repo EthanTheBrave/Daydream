@@ -12,32 +12,72 @@ int   gNumDwarves = 0;
 int   gFoodSupply  = START_FOOD;
 int   gDrinkSupply = START_DRINK;
 
-static const char* kNames[10] = {
+static const char* kNames[20] = {
     "Urist","Bomrek","Meng","Datan","Sibrek",
-    "Fikod","Stukos","Udib","Rigoth","Onget"
+    "Fikod","Stukos","Udib","Rigoth","Onget",
+    "Kadol","Vucar","Aban","Zulban","Momuz",
+    "Likot","Erush","Nish","Ducim","Bembul"
 };
+static int gNameIdx = 0;  // cycles through names for new migrants
 
 // ----------------------------------------------------------------
+static void initOneDwarf(int idx, int spawnX, int spawnY) {
+    Dwarf& d = gDwarves[idx];
+    memset(&d, 0, sizeof(d));
+    d.x      = (int8_t)spawnX;
+    d.y      = (int8_t)spawnY;
+    d.lastX  = d.x;
+    d.lastY  = d.y;
+    d.state  = DS_IDLE;
+    d.taskIdx = -1;
+    d.hunger  = random(10, 30);
+    d.thirst  = random(10, 30);
+    d.fatigue = random(5, 20);
+    d.active  = true;
+    d.dead    = false;
+    d.carrying = ITEM_NONE;
+    d.placeFurn = false;
+    strncpy(d.name, kNames[gNameIdx % 20], 9);
+    gNameIdx++;
+    mapMarkDirty(d.x, d.y);
+}
+
 void dwarfInit(int count, int startX, int startY) {
     gNumDwarves = min(count, MAX_DWARVES);
+    gNameIdx    = 0;
     for (int i = 0; i < gNumDwarves; i++) {
-        Dwarf& d = gDwarves[i];
-        memset(&d, 0, sizeof(d));
-        d.x      = (int8_t)startX;
-        d.y      = (int8_t)(startY - gNumDwarves/2 + i);
-        d.lastX  = d.x;
-        d.lastY  = d.y;
-        d.state  = DS_IDLE;
-        d.taskIdx = -1;
-        d.hunger  = random(10, 30);
-        d.thirst  = random(10, 30);
-        d.fatigue = random(5, 20);
-        d.active  = true;
-        d.dead    = false;
-        d.carrying = ITEM_NONE;
-        d.placeFurn = false;
-        strncpy(d.name, kNames[i % 10], 9);
-        mapMarkDirty(d.x, d.y);
+        initOneDwarf(i, startX, startY - gNumDwarves/2 + i);
+    }
+}
+
+// ----------------------------------------------------------------
+//  Spawn a wave of migrants arriving from the left edge of the map
+// ----------------------------------------------------------------
+void dwarfSpawnMigrants(int count) {
+    for (int i = 0; i < count; i++) {
+        if (gNumDwarves >= MAX_DWARVES) break;
+
+        // Find a free slot (may have dead dwarves in the array)
+        int slot = -1;
+        for (int j = 0; j < MAX_DWARVES; j++) {
+            if (!gDwarves[j].active && !gDwarves[j].dead && j >= gNumDwarves) {
+                slot = j; break;
+            }
+        }
+        if (slot < 0) slot = gNumDwarves;
+        if (slot >= MAX_DWARVES) break;
+
+        // Spawn at left edge, random y on passable grass
+        int sy = random(1, MAP_H - 1);
+        for (int tries = 0; tries < 20; tries++) {
+            int ty = random(1, MAP_H - 1);
+            if (mapPassable(0, ty)) { sy = ty; break; }
+        }
+        initOneDwarf(slot, 0, sy);
+        if (slot == gNumDwarves) gNumDwarves++;
+
+        Serial.print("Migrant arrived: ");
+        Serial.println(gDwarves[slot].name);
     }
 }
 

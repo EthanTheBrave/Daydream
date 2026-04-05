@@ -19,6 +19,8 @@
 #include "../tasks.h"
 #include "../dwarves.h"
 #include "../fortplan.h"
+#include "../animals.h"
+#include "../goblins.h"
 #include "../renderer.h"
 
 #include <stdio.h>
@@ -180,6 +182,8 @@ static void runHeadless(int maxTicks) {
     mapInit(MAP_SEED);
     tasksInit();
     fortPlanInit();
+    animalsInit();
+    goblinsInit();
     dwarfInit(NUM_DWARVES, HILL_START_X - 2, MAP_H / 2);
 
     char prevStage[24] = "";
@@ -189,6 +193,8 @@ static void runHeadless(int maxTicks) {
     for (int i = 0; i < maxTicks; i++) {
         fortPlanTick();
         dwarvesTick();
+        animalsTick();
+        goblinsTick();
 
         if (strcmp(gStageName, prevStage) != 0) {
             strncpy(prevStage, gStageName, sizeof(prevStage)-1);
@@ -270,6 +276,8 @@ int main(int argc, char** argv) {
 
             fortPlanTick();
             dwarvesTick();
+            animalsTick();
+            goblinsTick();
 
             if (gFortFallen) {
                 renderFailure(gFortFallReason);
