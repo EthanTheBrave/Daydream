@@ -1,0 +1,25 @@
+# Compiled binaries
+*.exe
+*.o
+*.obj
+
+# Build output / logs
+DwarfortSim/pc_sim/build_out.txt
+DwarfortSim/pc_sim/build_err.txt
+DwarfortSim/pc_sim/run_out.txt
+DwarfortSim/pc_sim/try_out.txt
+DwarfortSim/pc_sim/gpp_ver.txt
+DwarfortSim/pc_sim/tiny_out.txt
+DwarfortSim/pc_sim/tiny.cpp
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Claude internal
+.claude/
+
+# Misc scratch files
+diag_out.txt
+tiny2.cpp
+tiny2.exe

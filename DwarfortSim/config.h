@@ -1,0 +1,208 @@
+#pragma once
+
+// ================================================================
+//  DWARFORT SIMULATOR — CONFIGURATION
+//  Edit these values before uploading to change behaviour.
+//  No other files need to be touched for basic tuning.
+// ================================================================
+
+// --- Dwarves -------------------------------------------------------
+#define NUM_DWARVES        7     // Starting population (1–10)
+
+// --- Timing --------------------------------------------------------
+#define SIM_TICK_MS      400     // ms between simulation steps
+                                 // Lower = faster simulation
+
+// --- Map -----------------------------------------------------------
+#define MAP_SEED       42424     // Change for a different map layout
+#define HILL_START_X      10     // Column where the hill face begins
+                                 // (surface grass to the left)
+
+// --- Starting supplies (placed as items on the surface) ------------
+#define START_FOOD        60     // Food units at embark
+#define START_DRINK       60     // Drink units at embark
+
+// --- Dwarf needs ---------------------------------------------------
+#define HUNGER_RATE        1     // Hunger added per tick
+#define THIRST_RATE        2     // Thirst added per tick
+#define FATIGUE_RATE       1     // Fatigue added per tick
+#define HUNGER_THRESH     65     // Hunger level that triggers eating
+#define THIRST_THRESH     60     // Thirst level that triggers drinking
+#define FATIGUE_THRESH    75     // Fatigue that triggers sleeping
+#define EAT_RESTORE       40     // Hunger removed per eat action
+#define DRINK_RESTORE     40     // Thirst removed per drink action
+#define SLEEP_RESTORE      5     // Fatigue removed per sleep tick
+
+// --- Work speeds (ticks to complete) -------------------------------
+#define DIG_TICKS          5     // Ticks to excavate one wall tile
+#define CHOP_TICKS         4     // Ticks to chop one tree
+#define HAUL_TICKS         2     // Ticks to deposit a carried item
+#define EAT_TICKS          3     // Ticks to eat a meal
+#define DRINK_TICKS        2     // Ticks to drink
+#define SLEEP_TICKS       15     // Ticks of sleep per rest session
+
+// --- Display (do not change unless using a different font) ---------
+#define MAP_W             53     // Tile columns  (53 * 6 = 318px — fills ~320px landscape)
+#define MAP_H             29     // Tile rows     (29 * 8 + 8 = 240px)
+#define FONT_W             6     // Pixels per character (TFT_eSPI font 1)
+#define FONT_H             8
+#define STATUS_BAR_Y     232     // Pixel Y of status bar (MAP_H * FONT_H)
+#define STATUS_BAR_H       8     // Pixels tall for status bar — 232+8=240px total
+
+// --- Crafting ------------------------------------------------------
+#define CRAFT_TICKS       10     // Ticks to craft one item at workshop
+#define CRAFT_WOOD_TABLE   2     // Wood cost per table
+#define CRAFT_WOOD_CHAIR   1
+#define CRAFT_WOOD_BED     2
+#define CRAFT_WOOD_DOOR    1
+#define CRAFT_WOOD_COFFIN  3
+#define CRAFT_WOOD_BARREL  2
+#define CRAFT_MUSH_FOOD_COST  2  // Mushrooms consumed per food batch (Kitchen)
+#define CRAFT_MUSH_BEER_COST  2  // Mushrooms consumed per beer batch (Still)
+
+// --- Death ---------------------------------------------------------
+#define STARVE_TICKS      10     // Consecutive max-hunger ticks before death
+#define DEHYDRATE_TICKS    7     // Consecutive max-thirst ticks before death
+
+// --- Embark cart (items placed on surface at spawn) ----------------
+#define CART_WOOD          5     // Starting wood pieces in cart
+#define CART_STONE         3     // Starting stone pieces in cart
+
+// --- Supply replenishment (surface foraging / stream collection) ---
+// Periodic additions to food and drink supply, simulating dwarves
+// hunting/foraging and collecting water off-screen.
+#define FORAGE_FOOD_INTERVAL  25   // ticks between food top-ups
+#define FORAGE_FOOD_AMOUNT     5   // food added per top-up
+#define COLLECT_DRINK_INTERVAL 18  // ticks between drink top-ups
+#define COLLECT_DRINK_AMOUNT   5   // drink added per top-up
+#define MAX_FOOD_SUPPLY       80   // supply cap
+#define MAX_DRINK_SUPPLY      80
+
+// --- Wood supply (surface trees) -----------------------------------
+#define LOW_WOOD_THRESHOLD     4   // designate trees when wood < this
+
+// --- Mushroom farms ------------------------------------------------
+#define MUSHROOM_GROW_INTERVAL 30  // ticks between mushroom spawns per farm plot
+#define MAX_MUSHROOMS_STOCKPILE 20 // stop growing if this many mushrooms in stockpile
+
+// --- Tomb (dug when a dwarf dies) ----------------------------------
+#define TOMB_X1           22
+#define TOMB_Y1           20
+#define TOMB_X2           28
+#define TOMB_Y2           24
+
+// --- Furnishing counts ---------------------------------------------
+#define HALL_TABLES        2
+#define HALL_CHAIRS        4
+#define BED_COUNT  NUM_DWARVES
+
+// --- Entity limits -------------------------------------------------
+#define MAX_DWARVES       10
+#define MAX_TASKS        300
+#define MAX_PATH_LEN     200     // Increased for wider map
+
+// --- Fort rooms (relative to map; edit carefully) ------------------
+// MAP is 53 wide x 29 tall. Hill starts at x=10. Vertical centre: y=14
+// Surface: x=0..9    Mountain: x=10..52
+
+// Entrance tunnel (3×3)
+#define FORT_ENTRANCE_X1  10
+#define FORT_ENTRANCE_Y1  12
+#define FORT_ENTRANCE_X2  12
+#define FORT_ENTRANCE_Y2  14
+
+// Main hall (7×7)
+#define FORT_HALL_X1      13
+#define FORT_HALL_Y1      11
+#define FORT_HALL_X2      19
+#define FORT_HALL_Y2      17
+
+// North corridor (3×3)
+#define FORT_NCORR_X1     15
+#define FORT_NCORR_Y1      8
+#define FORT_NCORR_X2     17
+#define FORT_NCORR_Y2     10
+
+// Stockpile room (8×5)
+#define FORT_STOCK_X1     13
+#define FORT_STOCK_Y1      3
+#define FORT_STOCK_X2     20
+#define FORT_STOCK_Y2      7
+
+// South corridor (3×3)
+#define FORT_SCORR_X1     15
+#define FORT_SCORR_Y1     18
+#define FORT_SCORR_X2     17
+#define FORT_SCORR_Y2     20
+
+// Bedroom (8×5)
+#define FORT_BED_X1       13
+#define FORT_BED_Y1       21
+#define FORT_BED_X2       20
+#define FORT_BED_Y2       25
+
+// East corridor — connects hall to workshop wing (3×3)
+#define FORT_ECORR_X1     20
+#define FORT_ECORR_Y1     12
+#define FORT_ECORR_X2     22
+#define FORT_ECORR_Y2     14
+
+// Workshop main corridor — single-tile-wide E-W passage at y=14
+#define FORT_WCORR_X1     23
+#define FORT_WCORR_Y1     14
+#define FORT_WCORR_X2     52
+#define FORT_WCORR_Y2     14
+
+// --- Individual workshops (3×3 each) ---
+// Row North (y=11..13)
+#define FORT_WS_WOOD_X1   24
+#define FORT_WS_WOOD_Y1   11
+#define FORT_WS_WOOD_X2   26
+#define FORT_WS_WOOD_Y2   13
+
+#define FORT_WS_STILL_X1  28
+#define FORT_WS_STILL_Y1  11
+#define FORT_WS_STILL_X2  30
+#define FORT_WS_STILL_Y2  13
+
+#define FORT_WS_KITCH_X1  32
+#define FORT_WS_KITCH_Y1  11
+#define FORT_WS_KITCH_X2  34
+#define FORT_WS_KITCH_Y2  13
+
+// Row South (y=15..17)
+#define FORT_WS_STONE_X1  24
+#define FORT_WS_STONE_Y1  15
+#define FORT_WS_STONE_X2  26
+#define FORT_WS_STONE_Y2  17
+
+#define FORT_WS_SMELT_X1  28
+#define FORT_WS_SMELT_Y1  15
+#define FORT_WS_SMELT_X2  30
+#define FORT_WS_SMELT_Y2  17
+
+#define FORT_WS_FORGE_X1  32
+#define FORT_WS_FORGE_Y1  15
+#define FORT_WS_FORGE_X2  34
+#define FORT_WS_FORGE_Y2  17
+
+#define FORT_WS_FARM_X1   36
+#define FORT_WS_FARM_Y1   15
+#define FORT_WS_FARM_X2   38
+#define FORT_WS_FARM_Y2   17
+
+// --- Farm plots (3×3 each, become TILE_FARM) ---
+#define FORT_FARM1_X1     36
+#define FORT_FARM1_Y1     11
+#define FORT_FARM1_X2     38
+#define FORT_FARM1_Y2     13
+
+#define FORT_FARM2_X1     40
+#define FORT_FARM2_Y1     11
+#define FORT_FARM2_X2     42
+#define FORT_FARM2_Y2     13
+
+#define FORT_FARM3_X1     40
+#define FORT_FARM3_Y1     15
+#define FORT_FARM3_X2     42
+#define FORT_FARM3_Y2     17
