@@ -217,6 +217,12 @@ static void runHeadless(int maxTicks) {
             fflush(stdout);
         }
 
+        if (gFortFallen) {
+            printf("T=%4u  *** FORTRESS FALLEN: %s ***\n",
+                   (unsigned)gTick, gFortFallReason);
+            fflush(stdout);
+            break;
+        }
         if (gFortStage == FS_DONE) break;
     }
 
@@ -264,6 +270,13 @@ int main(int argc, char** argv) {
 
             fortPlanTick();
             dwarvesTick();
+
+            if (gFortFallen) {
+                renderFailure(gFortFallReason);
+                tft.flush(MAP_W, MAP_H);
+                break;
+            }
+
             renderFrame();
 
             tft.flush(MAP_W, MAP_H);

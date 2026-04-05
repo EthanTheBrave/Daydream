@@ -215,6 +215,44 @@ void renderAll() {
     mapClearAllDirty();
 }
 
+// ----------------------------------------------------------------
+void renderFailure(const char* reason) {
+    tft.fillScreen(C_BLACK);
+
+    // Big red title
+    tft.setTextSize(2);
+    tft.setTextColor(C_RED, C_BLACK);
+    tft.setCursor(28, 60);
+    tft.print("FORTRESS FALLEN");
+
+    // Separator
+    tft.fillRect(10, 82, MAP_W * FONT_W - 20, 2, C_RED);
+
+    // Reason line
+    char buf[64];
+    snprintf(buf, sizeof(buf), "Cause: %s", reason);
+    tft.setTextSize(1);
+    tft.setTextColor(C_YELLOW, C_BLACK);
+    tft.setCursor(80, 100);
+    tft.print(buf);
+
+    // Dwarf count
+    tft.setTextColor(C_GRAY, C_BLACK);
+    tft.setCursor(70, 116);
+    tft.print("All dwarves have perished.");
+
+    // Flavour
+    tft.setTextColor(C_DARK_GREEN, C_BLACK);
+    tft.setCursor(50, 140);
+    tft.print("Their story will be remembered.");
+
+    // Tick
+    snprintf(buf, sizeof(buf), "Survived %u ticks.", (unsigned int)gTick);
+    tft.setTextColor(C_GRAY, C_BLACK);
+    tft.setCursor(76, 160);
+    tft.print(buf);
+}
+
 void renderFrame() {
     for (int i = 0; i < gNumDwarves; i++) {
         if (!gDwarves[i].active) continue;

@@ -10,6 +10,10 @@ extern int  gDeadUnburied;    // number of corpses awaiting burial
 extern int  gTombSlotUsed;    // coffin slots placed in tomb so far
 extern bool gTombDug;         // has the tomb room been dug?
 
+// Fortress failure
+extern bool gFortFallen;
+extern char gFortFallReason[48];  // e.g. "starvation", "dehydration"
+
 void fortPlanInit();
 void fortPlanTick();
 

@@ -77,6 +77,12 @@ void setup() {
 
 // ----------------------------------------------------------------
 void loop() {
+    if (gFortFallen) {
+        // Show failure screen once and stop
+        renderFailure(gFortFallReason);
+        while (true) delay(1000);
+    }
+
     uint32_t now = millis();
     if (now - sLastTick >= SIM_TICK_MS) {
         sLastTick = now;

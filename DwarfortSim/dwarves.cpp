@@ -100,20 +100,27 @@ static void tickDwarf(int idx) {
 
     // ---- Death check ----
     if (d.starveCount >= STARVE_TICKS || d.dehydCount >= DEHYDRATE_TICKS) {
-        // Dwarf dies
+        const char* cause = (d.dehydCount >= DEHYDRATE_TICKS) ? "dehydration" : "starvation";
         d.state = DS_DEAD;
         d.dead  = true;
         d.active = false;
         if (d.taskIdx >= 0) { taskUnclaim(d.taskIdx); d.taskIdx = -1; }
-        // Drop anything carried
         if (d.carrying != ITEM_NONE) {
             mapAddItem(d.x, d.y, d.carrying);
             d.carrying = ITEM_NONE;
         }
-        // Leave corpse and notify fort planner to begin burial
         mapAddItem(d.x, d.y, ITEM_CORPSE);
         mapMarkDirty(d.x, d.y);
         fortNotifyDeath(d.x, d.y);
+
+        // Check if all dwarves are now dead
+        bool anyAlive = false;
+        for (int j = 0; j < gNumDwarves; j++)
+            if (!gDwarves[j].dead) { anyAlive = true; break; }
+        if (!anyAlive && !gFortFallen) {
+            gFortFallen = true;
+            strncpy(gFortFallReason, cause, sizeof(gFortFallReason) - 1);
+        }
         return;
     }
 

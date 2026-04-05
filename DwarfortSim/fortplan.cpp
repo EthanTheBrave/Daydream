@@ -14,6 +14,9 @@ int  gDeadUnburied = 0;
 int  gTombSlotUsed = 0;
 bool gTombDug      = false;
 
+bool gFortFallen        = false;
+char gFortFallReason[48] = "";
+
 // Track which farms are active (TILE_FARM set)
 static bool gFarmsActive = false;
 
@@ -474,6 +477,8 @@ void fortPlanInit() {
     gTombSlotUsed  = 0;
     gTombDug       = false;
     gFarmsActive   = false;
+    gFortFallen    = false;
+    gFortFallReason[0] = '\0';
     strncpy(gStageName, "Arriving", sizeof(gStageName) - 1);
 }
 
