@@ -1,5 +1,6 @@
 #include "goblins.h"
 #include "map.h"
+#include "tasks.h"
 #include "dwarves.h"
 #include "fortplan.h"
 #include "config.h"
@@ -85,7 +86,15 @@ static void moveGoblin(int idx) {
     g.moveTimer = GOBLIN_MOVE_INTERVAL;
 
     g.despawnTimer--;
-    if (g.despawnTimer == 0) { g.active = false; mapMarkDirty(g.x,g.y); return; }
+    if (g.despawnTimer == 0) {
+        g.active = false; mapMarkDirty(g.x,g.y);
+        if (random(0, 2) == 0) {
+            mapAddItem(g.x, g.y, ITEM_BONE);
+            int bsx, bsy;
+            if (stockpileFindSlot(&bsx, &bsy)) taskAdd(TASK_HAUL, g.x, g.y, bsx, bsy);
+        }
+        return;
+    }
 
     int ti = nearestDwarf(g.x, g.y);
     if (ti < 0) return; // no dwarves left
@@ -95,15 +104,23 @@ static void moveGoblin(int idx) {
     // Attack if adjacent
     int dist = abs(target.x - g.x) + abs(target.y - g.y);
     if (dist <= 1) {
+        // Combat skill reduces damage (0 skill = full, max skill = 25% damage)
+        int damage = GOBLIN_ATTACK_DAMAGE - (target.combatSkill * GOBLIN_ATTACK_DAMAGE / (COMBAT_SKILL_MAX * 4 / 3));
+        if (damage < GOBLIN_ATTACK_DAMAGE / 4) damage = GOBLIN_ATTACK_DAMAGE / 4;
         // Injure the dwarf — spike hunger and thirst to simulate wounding
-        target.hunger  = min(100, (int)target.hunger  + GOBLIN_ATTACK_DAMAGE);
-        target.thirst  = min(100, (int)target.thirst  + GOBLIN_ATTACK_DAMAGE);
+        target.hunger  = min(100, (int)target.hunger  + damage);
+        target.thirst  = min(100, (int)target.thirst  + damage);
         // Also drain supply (goblin ransacks food)
         gFoodSupply  = max(0, gFoodSupply  - 3);
         gDrinkSupply = max(0, gDrinkSupply - 3);
-        // Goblin despawns after a successful attack
+        // Goblin despawns after a successful attack, dropping bones
         g.active = false;
         mapMarkDirty(g.x, g.y);
+        if (random(0, 2) == 0) {
+            mapAddItem(g.x, g.y, ITEM_BONE);
+            int bsx, bsy;
+            if (stockpileFindSlot(&bsx, &bsy)) taskAdd(TASK_HAUL, g.x, g.y, bsx, bsy);
+        }
 
         // Update fall reason if this kills the last dwarf
         int alive = 0;

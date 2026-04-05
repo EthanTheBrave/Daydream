@@ -96,6 +96,16 @@
 #define HALL_CHAIRS        4
 #define BED_COUNT  NUM_DWARVES
 
+// --- Combat / Barracks (4×4 room at end of workshop wing) ----------
+#define FORT_BAR_X1  44
+#define FORT_BAR_Y1  10
+#define FORT_BAR_X2  47
+#define FORT_BAR_Y2  13
+
+#define COMBAT_TRAIN_INTERVAL   3    // ticks between +1 skill while training
+#define COMBAT_TRAIN_DURATION  40    // ticks per barracks training session
+#define COMBAT_SKILL_MAX       80    // max combat skill
+
 // --- Animals -------------------------------------------------------
 #define MAX_ANIMALS         8    // max sheep + cats on map at once
 #define ANIMAL_WANDER_TICKS 3    // ticks between animal moves

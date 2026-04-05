@@ -38,9 +38,10 @@ extern TFT_eSPI tft;
 #define BG_HALL      0x0821  // dim blue-grey
 #define BG_STOCKPILE 0x1800  // dim red-brown
 #define BG_BEDROOM   0x0010  // dim blue
-#define BG_WORKSHOP  0x2000  // dim red
+#define BG_WORKSHOP  0x8000  // red — workshops clearly distinct from floor
 #define BG_FARM      0x0200  // dim green (soil)
 #define BG_TOMB      0x1010  // dim purple
+#define BG_BARRACKS  0x0421  // dim teal — training area
 
 // ----------------------------------------------------------------
 //  Per-cell display cache
@@ -73,6 +74,7 @@ static uint16_t roomBg(RoomType r) {
         case ROOM_WORKSHOP:  return BG_WORKSHOP;
         case ROOM_FARM:      return BG_FARM;
         case ROOM_TOMB:      return BG_TOMB;
+        case ROOM_BARRACKS:  return BG_BARRACKS;
         default:             return C_BLACK;
     }
 }
@@ -125,6 +127,7 @@ static void tileVisual(int x, int y, char* ch, uint16_t* fg, uint16_t* bg) {
             case ITEM_DOOR_I:   *ch = '+'; *fg = C_BROWN;      return;
             case ITEM_MUSHROOM: *ch = 'm'; *fg = C_PURPLE;     return;
             case ITEM_BEER:     *ch = 'U'; *fg = C_CYAN;       return;
+            case ITEM_BONE:     *ch = 'b'; *fg = C_WHITE;      return;
             default: break;
         }
     }
@@ -140,7 +143,13 @@ static void tileVisual(int x, int y, char* ch, uint16_t* fg, uint16_t* bg) {
 
         case TILE_FLOOR:
             *bg = roomBg(t.roomType);
-            *ch = '.'; *fg = C_TAN;
+            if (t.roomType == ROOM_WORKSHOP) {
+                *ch = '~'; *fg = C_ORANGE;   // forge-heat shimmer
+            } else if (t.roomType == ROOM_BARRACKS) {
+                *ch = '+'; *fg = C_CYAN;     // training mat crosshatch
+            } else {
+                *ch = '.'; *fg = C_TAN;
+            }
             break;
 
         case TILE_GRASS:

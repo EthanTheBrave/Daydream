@@ -37,6 +37,7 @@ enum RoomType : uint8_t {
     ROOM_WORKSHOP  = 4,
     ROOM_TOMB      = 5,
     ROOM_FARM      = 6,
+    ROOM_BARRACKS  = 7,
 };
 
 // ----------------------------------------------------------------
@@ -57,6 +58,7 @@ enum ItemType : uint8_t {
     ITEM_DOOR_I   = 11,  // '+'  crafted door (before placing)
     ITEM_MUSHROOM = 12,  // 'm'  fresh mushroom (farmable ingredient)
     ITEM_BEER     = 13,  // 'U'  brewed beer (acts as drink)
+    ITEM_BONE     = 14,  // 'b'  bone fragment (drops from goblins, used in kitchen)
 };
 
 // ----------------------------------------------------------------
@@ -83,6 +85,7 @@ enum CraftType : uint8_t {
     CRAFT_BED            = 5,
     CRAFT_MUSHROOM_FOOD  = 6,  // Kitchen: 2 mushrooms → 1 food
     CRAFT_MUSHROOM_BEER  = 7,  // Still:   2 mushrooms → 1 beer
+    CRAFT_BONE_BROTH     = 8,  // Kitchen: 2 bones → 1 food (bone broth)
 };
 
 inline uint8_t craftWoodCost(CraftType ct) {
@@ -104,6 +107,12 @@ inline uint8_t craftMushroomCost(CraftType ct) {
     return 0;
 }
 
+// Bone cost (for CRAFT_BONE_BROTH)
+inline uint8_t craftBoneCost(CraftType ct) {
+    if (ct == CRAFT_BONE_BROTH) return 2;
+    return 0;
+}
+
 inline ItemType craftProduct(CraftType ct) {
     switch (ct) {
         case CRAFT_TABLE:         return ITEM_TABLE_I;
@@ -114,6 +123,7 @@ inline ItemType craftProduct(CraftType ct) {
         case CRAFT_BED:           return ITEM_BED_I;
         case CRAFT_MUSHROOM_FOOD: return ITEM_FOOD;
         case CRAFT_MUSHROOM_BEER: return ITEM_BEER;
+        case CRAFT_BONE_BROTH:    return ITEM_FOOD;
         default:                  return ITEM_STONE;
     }
 }
@@ -174,6 +184,8 @@ enum DwarfState : uint8_t {
     DS_HAULING  = 6,
     DS_WANDER   = 7,
     DS_DEAD     = 8,
+    DS_FETCHING = 9,   // moving to stockpile to pick up craft material
+    DS_TRAINING = 10,  // moving to/training in barracks
 };
 
 struct Dwarf {
@@ -190,6 +202,7 @@ struct Dwarf {
     uint8_t    dehydCount;    // consecutive ticks at thirst=100
     ItemType   carrying;
     bool       placeFurn;     // true when hauling to place as tile, not drop
+    uint8_t    combatSkill;   // 0–COMBAT_SKILL_MAX, trained in barracks
     int8_t     pathX[MAX_PATH_LEN];
     int8_t     pathY[MAX_PATH_LEN];
     uint8_t    pathLen;

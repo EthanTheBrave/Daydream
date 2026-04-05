@@ -130,6 +130,8 @@ static const char* stateName(DwarfState s) {
         case DS_SLEEPING: return "SLEEPING";
         case DS_HAULING:  return "HAULING ";
         case DS_WANDER:   return "WANDER  ";
+        case DS_FETCHING: return "FETCHING";
+        case DS_TRAINING: return "TRAINING";
         default:          return "???     ";
     }
 }

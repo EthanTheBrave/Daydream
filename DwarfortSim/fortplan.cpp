@@ -337,7 +337,7 @@ static int countWorkshopsDug() {
     return done;
 }
 
-// Total workshop rects (7 workshops + 3 farms + corridor)
+// Total workshop rects (7 workshops + 3 farms + barracks + corridor)
 static int workshopTotalRemainingDig() {
     int n = fortCountRemainingDig(FORT_WCORR_X1, FORT_WCORR_Y1, FORT_WCORR_X2, FORT_WCORR_Y2);
     n += fortCountRemainingDig(FORT_WS_WOOD_X1, FORT_WS_WOOD_Y1, FORT_WS_WOOD_X2, FORT_WS_WOOD_Y2);
@@ -350,24 +350,57 @@ static int workshopTotalRemainingDig() {
     n += fortCountRemainingDig(FORT_FARM1_X1, FORT_FARM1_Y1, FORT_FARM1_X2, FORT_FARM1_Y2);
     n += fortCountRemainingDig(FORT_FARM2_X1, FORT_FARM2_Y1, FORT_FARM2_X2, FORT_FARM2_Y2);
     n += fortCountRemainingDig(FORT_FARM3_X1, FORT_FARM3_Y1, FORT_FARM3_X2, FORT_FARM3_Y2);
+    n += fortCountRemainingDig(FORT_BAR_X1,   FORT_BAR_Y1,   FORT_BAR_X2,   FORT_BAR_Y2);
     return n;
 }
 
+// Designate workshop corridor only — rooms are opened incrementally
+// as corridor tiles become passable (see progressWorkshopDig).
 static void designateAllWorkshops() {
-    // Workshop corridor (single row at y=14)
     fortDesignateRect(FORT_WCORR_X1, FORT_WCORR_Y1, FORT_WCORR_X2, FORT_WCORR_Y2);
-    // 7 workshops
-    fortDesignateRect(FORT_WS_WOOD_X1,  FORT_WS_WOOD_Y1,  FORT_WS_WOOD_X2,  FORT_WS_WOOD_Y2);
-    fortDesignateRect(FORT_WS_STILL_X1, FORT_WS_STILL_Y1, FORT_WS_STILL_X2, FORT_WS_STILL_Y2);
-    fortDesignateRect(FORT_WS_KITCH_X1, FORT_WS_KITCH_Y1, FORT_WS_KITCH_X2, FORT_WS_KITCH_Y2);
-    fortDesignateRect(FORT_WS_STONE_X1, FORT_WS_STONE_Y1, FORT_WS_STONE_X2, FORT_WS_STONE_Y2);
-    fortDesignateRect(FORT_WS_SMELT_X1, FORT_WS_SMELT_Y1, FORT_WS_SMELT_X2, FORT_WS_SMELT_Y2);
-    fortDesignateRect(FORT_WS_FORGE_X1, FORT_WS_FORGE_Y1, FORT_WS_FORGE_X2, FORT_WS_FORGE_Y2);
-    fortDesignateRect(FORT_WS_FARM_X1,  FORT_WS_FARM_Y1,  FORT_WS_FARM_X2,  FORT_WS_FARM_Y2);
-    // 3 farm plots
-    fortDesignateRect(FORT_FARM1_X1, FORT_FARM1_Y1, FORT_FARM1_X2, FORT_FARM1_Y2);
-    fortDesignateRect(FORT_FARM2_X1, FORT_FARM2_Y1, FORT_FARM2_X2, FORT_FARM2_Y2);
-    fortDesignateRect(FORT_FARM3_X1, FORT_FARM3_Y1, FORT_FARM3_X2, FORT_FARM3_Y2);
+}
+
+// Each tick during FS_WORKSHOPS: designate any wall tile inside a room that
+// has at least one passable neighbour.  Called every tick so newly-dug tiles
+// propagate reachability inward row-by-row with no permanent stalls.
+static void progressWorkshopDig() {
+    static const struct { int x1,y1,x2,y2; } kRooms[] = {
+        {FORT_WS_WOOD_X1,  FORT_WS_WOOD_Y1,  FORT_WS_WOOD_X2,  FORT_WS_WOOD_Y2 },
+        {FORT_WS_STILL_X1, FORT_WS_STILL_Y1, FORT_WS_STILL_X2, FORT_WS_STILL_Y2},
+        {FORT_WS_KITCH_X1, FORT_WS_KITCH_Y1, FORT_WS_KITCH_X2, FORT_WS_KITCH_Y2},
+        {FORT_FARM1_X1,    FORT_FARM1_Y1,    FORT_FARM1_X2,    FORT_FARM1_Y2   },
+        {FORT_FARM2_X1,    FORT_FARM2_Y1,    FORT_FARM2_X2,    FORT_FARM2_Y2   },
+        {FORT_WS_STONE_X1, FORT_WS_STONE_Y1, FORT_WS_STONE_X2, FORT_WS_STONE_Y2},
+        {FORT_WS_SMELT_X1, FORT_WS_SMELT_Y1, FORT_WS_SMELT_X2, FORT_WS_SMELT_Y2},
+        {FORT_WS_FORGE_X1, FORT_WS_FORGE_Y1, FORT_WS_FORGE_X2, FORT_WS_FORGE_Y2},
+        {FORT_WS_FARM_X1,  FORT_WS_FARM_Y1,  FORT_WS_FARM_X2,  FORT_WS_FARM_Y2 },
+        {FORT_FARM3_X1,    FORT_FARM3_Y1,    FORT_FARM3_X2,    FORT_FARM3_Y2   },
+        {FORT_BAR_X1,      FORT_BAR_Y1,      FORT_BAR_X2,      FORT_BAR_Y2     },
+    };
+    static const int kNumRooms = 11;
+    static const int8_t DX[4] = {1,-1,0,0};
+    static const int8_t DY[4] = {0,0,1,-1};
+
+    for (int ri = 0; ri < kNumRooms; ri++) {
+        for (int y = kRooms[ri].y1; y <= kRooms[ri].y2; y++) {
+            for (int x = kRooms[ri].x1; x <= kRooms[ri].x2; x++) {
+                // Skip already-dug or already-designated tiles
+                if (!mapInBounds(x, y)) continue;
+                if (mapGet(x, y) != TILE_WALL) continue;
+                if (mapDesignated(x, y)) continue;
+                // Only designate if at least one neighbour is passable
+                bool ok = false;
+                for (int d = 0; d < 4 && !ok; d++) {
+                    int nx = x + DX[d], ny = y + DY[d];
+                    if (mapInBounds(nx, ny) && mapPassable(nx, ny)) ok = true;
+                }
+                if (ok) {
+                    mapDesignate(x, y, true);
+                    taskAdd(TASK_DIG, x, y);
+                }
+            }
+        }
+    }
 }
 
 static void finaliseWorkshops() {
@@ -385,6 +418,8 @@ static void finaliseWorkshops() {
     convertToFarm(FORT_FARM2_X1, FORT_FARM2_Y1, FORT_FARM2_X2, FORT_FARM2_Y2);
     convertToFarm(FORT_FARM3_X1, FORT_FARM3_Y1, FORT_FARM3_X2, FORT_FARM3_Y2);
     gFarmsActive = true;
+    // Set barracks room type
+    mapSetRoomRect(FORT_BAR_X1, FORT_BAR_Y1, FORT_BAR_X2, FORT_BAR_Y2, ROOM_BARRACKS);
 
     // Queue barrels at Still
     int sx = (FORT_WS_STILL_X1+FORT_WS_STILL_X2)/2;
@@ -621,6 +656,7 @@ void fortPlanTick() {
 
     case FS_WORKSHOPS:
         manageFurnishBed(); // keep trying beds
+        progressWorkshopDig(); // open rooms as corridor is dug
         if (workshopTotalRemainingDig() > 0) break;
         finaliseWorkshops();
         gFortStage = FS_DONE;
@@ -630,6 +666,17 @@ void fortPlanTick() {
     case FS_DONE:
         manageFarms();
         manageMushProcessing();
+        // Queue bone broth at kitchen if food low and bones available
+        if (gFoodSupply < MAX_FOOD_SUPPLY / 2
+            && mapCountItemGlobal(ITEM_BONE) >= 2
+            && !taskExistsCraft(CRAFT_BONE_BROTH)) {
+            int kx = (FORT_WS_KITCH_X1+FORT_WS_KITCH_X2)/2;
+            int ky = (FORT_WS_KITCH_Y1+FORT_WS_KITCH_Y2)/2;
+            if (mapPassable(kx, ky)) {
+                int ti = taskAdd(TASK_CRAFT, kx, ky);
+                if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_BONE_BROTH;
+            }
+        }
         // Keep crafting barrels if wood available
         if (mapCountItemGlobal(ITEM_WOOD) > CRAFT_WOOD_BARREL * 2
             && !taskExistsCraft(CRAFT_BARREL)) {

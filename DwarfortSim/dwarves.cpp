@@ -35,8 +35,9 @@ static void initOneDwarf(int idx, int spawnX, int spawnY) {
     d.fatigue = random(5, 20);
     d.active  = true;
     d.dead    = false;
-    d.carrying = ITEM_NONE;
-    d.placeFurn = false;
+    d.carrying    = ITEM_NONE;
+    d.placeFurn   = false;
+    d.combatSkill = 0;
     strncpy(d.name, kNames[gNameIdx % 20], 9);
     gNameIdx++;
     mapMarkDirty(d.x, d.y);
@@ -164,24 +165,37 @@ static void tickDwarf(int idx) {
         return;
     }
 
+    // ---- Helper: unclaim task and drop any craft material being carried ----
+    #define UNCLAIM_TASK() do { \
+        if (d.taskIdx >= 0) { \
+            if (d.carrying != ITEM_NONE && gTasks[d.taskIdx].type == TASK_CRAFT) { \
+                mapAddItem(d.x, d.y, d.carrying); \
+                d.carrying = ITEM_NONE; \
+                int _sx, _sy; \
+                if (stockpileFindSlot(&_sx, &_sy)) taskAdd(TASK_HAUL, d.x, d.y, _sx, _sy); \
+            } \
+            taskUnclaim(d.taskIdx); d.taskIdx = -1; \
+        } \
+    } while(0)
+
     // ---- Critical needs override current task ----
     if (d.state != DS_EATING && d.state != DS_DRINKING && d.state != DS_SLEEPING) {
         if (d.thirst >= THIRST_THRESH && gDrinkSupply > 0) {
-            if (d.taskIdx >= 0) { taskUnclaim(d.taskIdx); d.taskIdx = -1; }
+            UNCLAIM_TASK();
             d.state    = DS_DRINKING;
             d.workLeft = DRINK_TICKS;
             d.pathLen  = 0; d.pathPos = 0;
             return;
         }
         if (d.hunger >= HUNGER_THRESH && gFoodSupply > 0) {
-            if (d.taskIdx >= 0) { taskUnclaim(d.taskIdx); d.taskIdx = -1; }
+            UNCLAIM_TASK();
             d.state    = DS_EATING;
             d.workLeft = EAT_TICKS;
             d.pathLen  = 0; d.pathPos = 0;
             return;
         }
         if (d.fatigue >= FATIGUE_THRESH) {
-            if (d.taskIdx >= 0) { taskUnclaim(d.taskIdx); d.taskIdx = -1; }
+            UNCLAIM_TASK();
             d.state    = DS_SLEEPING;
             d.workLeft = SLEEP_TICKS;
             d.pathLen  = 0; d.pathPos = 0;
@@ -206,6 +220,7 @@ static void tickDwarf(int idx) {
 
             Task& t = gTasks[ti];
             int plen = 0;
+            bool startFetch = false;
 
             if (t.type == TASK_DIG || t.type == TASK_CHOP) {
                 plen = pathFindAdj(d.x, d.y, t.x, t.y, d.pathX, d.pathY, MAX_PATH_LEN);
@@ -214,6 +229,16 @@ static void tickDwarf(int idx) {
                 int sx = (gStockX1+gStockX2)/2, sy = (gStockY1+gStockY2)/2;
                 plen = pathFind(d.x, d.y, sx, sy, d.pathX, d.pathY, MAX_PATH_LEN);
                 if (plen == 0) plen = 1; // already nearby
+            } else if (t.type == TASK_CRAFT) {
+                CraftType ct = (CraftType)t.auxType;
+                if (craftWoodCost(ct) > 0 || craftBoneCost(ct) > 0) {
+                    // Fetch material from stockpile first
+                    int sx = (gStockX1+gStockX2)/2, sy = (gStockY1+gStockY2)/2;
+                    plen = pathFind(d.x, d.y, sx, sy, d.pathX, d.pathY, MAX_PATH_LEN);
+                    startFetch = true;
+                } else {
+                    plen = pathFind(d.x, d.y, t.x, t.y, d.pathX, d.pathY, MAX_PATH_LEN);
+                }
             } else {
                 plen = pathFind(d.x, d.y, t.x, t.y, d.pathX, d.pathY, MAX_PATH_LEN);
             }
@@ -226,12 +251,28 @@ static void tickDwarf(int idx) {
                     for (int di = 0; di < 4 && !inPos; di++)
                         if (d.x == t.x+adx[di] && d.y == t.y+ady[di]) inPos = true;
                 }
-                if (!inPos) { taskUnclaim(ti); d.taskIdx=-1; break; }
+                if (!inPos && !startFetch) { taskUnclaim(ti); d.taskIdx=-1; break; }
             }
             d.pathLen = (uint8_t)plen;
             d.pathPos = 0;
-            d.state   = DS_MOVING;
+            d.state   = startFetch ? DS_FETCHING : DS_MOVING;
             break;
+        }
+
+        // No work — consider training in barracks
+        if (d.combatSkill < COMBAT_SKILL_MAX && d.idleTicks >= 6) {
+            int bx = (FORT_BAR_X1+FORT_BAR_X2)/2, by = (FORT_BAR_Y1+FORT_BAR_Y2)/2;
+            if (mapPassable(bx, by) && gMap[by][bx].roomType == ROOM_BARRACKS
+                && random(0, 4) == 0) {
+                int plen = pathFind(d.x, d.y, bx, by, d.pathX, d.pathY, MAX_PATH_LEN);
+                if (plen > 0) {
+                    d.pathLen = (uint8_t)plen; d.pathPos = 0;
+                    d.state   = DS_TRAINING;
+                    d.workLeft = COMBAT_TRAIN_DURATION;
+                    d.idleTicks = 0;
+                    break;
+                }
+            }
         }
 
         // No work — wander
@@ -249,6 +290,51 @@ static void tickDwarf(int idx) {
                 int plen = pathFind(d.x, d.y, bestX, bestY, d.pathX, d.pathY, MAX_PATH_LEN);
                 if (plen > 0) { d.pathLen=(uint8_t)plen; d.pathPos=0; d.state=DS_WANDER; }
             }
+        }
+        break;
+    }
+
+    // ---- FETCHING (heading to stockpile to pick up craft material) ----
+    case DS_FETCHING: {
+        if (d.taskIdx < 0) { d.state=DS_IDLE; break; }
+        if (d.pathPos < d.pathLen) { dwarfMove(idx); break; }
+
+        // Arrived at stockpile — find and physically pick up material
+        Task& ft = gTasks[d.taskIdx];
+        CraftType fct = (CraftType)ft.auxType;
+        int woodCost = craftWoodCost(fct);
+        ItemType need = (woodCost > 0) ? ITEM_WOOD : ITEM_BONE;
+
+        int ix = -1, iy = -1;
+        for (int sy2 = gStockY1; sy2 <= gStockY2 && ix < 0; sy2++)
+            for (int sx2 = gStockX1; sx2 <= gStockX2 && ix < 0; sx2++)
+                if (mapInBounds(sx2,sy2) && gMap[sy2][sx2].item == need) { ix=sx2; iy=sy2; }
+        if (ix < 0) mapFindItem(d.x, d.y, need, &ix, &iy);
+
+        if (ix >= 0 && mapRemoveItem(ix, iy, need)) {
+            d.carrying = need;
+            int plen = pathFind(d.x, d.y, ft.x, ft.y, d.pathX, d.pathY, MAX_PATH_LEN);
+            d.pathLen = (uint8_t)plen; d.pathPos = 0;
+            d.state   = DS_MOVING;
+        } else {
+            taskUnclaim(d.taskIdx); d.taskIdx=-1; d.state=DS_IDLE;
+        }
+        break;
+    }
+
+    // ---- TRAINING (moving to / training in barracks) ----
+    case DS_TRAINING: {
+        // Real work takes priority over training
+        if (taskFindBest(d.x, d.y) >= 0) { d.state=DS_IDLE; break; }
+        if (d.pathPos < d.pathLen) { dwarfMove(idx); break; }
+
+        // Inside barracks — train
+        if (d.workLeft > 0) {
+            d.workLeft--;
+            if (gTick % COMBAT_TRAIN_INTERVAL == 0 && d.combatSkill < COMBAT_SKILL_MAX)
+                d.combatSkill++;
+        } else {
+            d.state = DS_IDLE;
         }
         break;
     }
@@ -287,9 +373,12 @@ static void tickDwarf(int idx) {
         if (t.type == TASK_DIG) {
             mapSet(t.x, t.y, TILE_FLOOR);
             mapDesignate(t.x, t.y, false);
-            mapAddItem(t.x, t.y, ITEM_STONE);
-            int sx, sy;
-            if (stockpileFindSlot(&sx, &sy)) taskAdd(TASK_HAUL, t.x, t.y, sx, sy);
+            // 50% chance to yield a stone boulder
+            if (random(0, 2) == 0) {
+                mapAddItem(t.x, t.y, ITEM_STONE);
+                int sx, sy;
+                if (stockpileFindSlot(&sx, &sy)) taskAdd(TASK_HAUL, t.x, t.y, sx, sy);
+            }
 
         // --- CHOP ---
         } else if (t.type == TASK_CHOP) {
@@ -330,8 +419,17 @@ static void tickDwarf(int idx) {
                 else
                     gDrinkSupply = min(gDrinkSupply + 3, (int)MAX_DRINK_SUPPLY);
             } else {
-                if (!mapConsumeFromStockpile(ITEM_WOOD, woodCost)) {
-                    // No materials yet — unclaim and wait for wood
+                // Dwarf physically carried the primary material (in d.carrying)
+                if (d.carrying == ITEM_NONE) {
+                    taskUnclaim(d.taskIdx); d.taskIdx=-1; d.state=DS_IDLE; break;
+                }
+                d.carrying = ITEM_NONE; // consume the carried unit
+                // Consume any additional units needed beyond the first
+                int boneCost2 = craftBoneCost(ct);
+                if (woodCost > 1 && !mapConsumeFromStockpile(ITEM_WOOD, woodCost - 1)) {
+                    taskUnclaim(d.taskIdx); d.taskIdx=-1; d.state=DS_IDLE; break;
+                }
+                if (boneCost2 > 1 && !mapConsumeFromStockpile(ITEM_BONE, boneCost2 - 1)) {
                     taskUnclaim(d.taskIdx); d.taskIdx=-1; d.state=DS_IDLE; break;
                 }
                 ItemType product = craftProduct(ct);
