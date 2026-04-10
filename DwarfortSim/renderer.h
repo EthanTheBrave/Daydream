@@ -10,3 +10,6 @@ void renderAll();
 
 // Show fortress-fallen screen
 void renderFailure(const char* reason);
+
+// Show victory screen (survived all seasons)
+void renderVictory(int seasons, int alive);

@@ -86,6 +86,7 @@ enum CraftType : uint8_t {
     CRAFT_MUSHROOM_FOOD  = 6,  // Kitchen: 2 mushrooms → 1 food
     CRAFT_MUSHROOM_BEER  = 7,  // Still:   2 mushrooms → 1 beer
     CRAFT_BONE_BROTH     = 8,  // Kitchen: 2 bones → 1 food (bone broth)
+    CRAFT_STONE_MUG      = 9,  // Mason:   1 stone → 1 barrel (stone mug)
 };
 
 inline uint8_t craftWoodCost(CraftType ct) {
@@ -113,6 +114,12 @@ inline uint8_t craftBoneCost(CraftType ct) {
     return 0;
 }
 
+// Stone cost (for CRAFT_STONE_MUG)
+inline uint8_t craftStoneCost(CraftType ct) {
+    if (ct == CRAFT_STONE_MUG) return CRAFT_STONE_MUG_COST;
+    return 0;
+}
+
 inline ItemType craftProduct(CraftType ct) {
     switch (ct) {
         case CRAFT_TABLE:         return ITEM_TABLE_I;
@@ -124,6 +131,7 @@ inline ItemType craftProduct(CraftType ct) {
         case CRAFT_MUSHROOM_FOOD: return ITEM_FOOD;
         case CRAFT_MUSHROOM_BEER: return ITEM_BEER;
         case CRAFT_BONE_BROTH:    return ITEM_FOOD;
+        case CRAFT_STONE_MUG:     return ITEM_BARREL;
         default:                  return ITEM_STONE;
     }
 }

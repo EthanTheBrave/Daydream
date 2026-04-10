@@ -22,6 +22,7 @@
 #include "../animals.h"
 #include "../goblins.h"
 #include "../renderer.h"
+#include "../pathfind.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -218,10 +219,41 @@ static void runHeadless(int maxTicks) {
                 if (gTasks[j].type == TASK_CRAFT) craft++;
                 if (gTasks[j].type == TASK_CHOP)  chop++;
             }
-            for (int j = 0; j < gNumDwarves; j++) if (!gDwarves[j].dead && gDwarves[j].state == DS_IDLE) idle++;
-            printf("  [T=%4u] alive=%d idle=%d  dig=%d chop=%d haul=%d craft=%d  wood=%d food=%d drink=%d\n",
-                   (unsigned)gTick, alive, idle, dig, chop, haul, craft,
-                   mapCountItemGlobal(ITEM_WOOD), gFoodSupply, gDrinkSupply);
+            int training = 0; int maxSkill = 0; int minSkill = 255;
+            for (int j = 0; j < gNumDwarves; j++) {
+                if (gDwarves[j].dead) continue;
+                if (gDwarves[j].state == DS_IDLE) idle++;
+                if (gDwarves[j].state == DS_TRAINING) training++;
+                if (gDwarves[j].combatSkill > maxSkill) maxSkill = gDwarves[j].combatSkill;
+                if (gDwarves[j].combatSkill < minSkill) minSkill = gDwarves[j].combatSkill;
+            }
+            // Dump dig task coords when count has been stuck (same as previous sample)
+            static int sPrevDig = -1;
+            if (dig > 0 && dig == sPrevDig && gTick % 2000 == 0) {
+                // Dig stall diagnostic
+                printf("  [T=%4u] DIG STALL — %d tasks stuck. Tiles around (31-33,14):\n", (unsigned)gTick, dig);
+                for (int dbx = 29; dbx <= 35; dbx++)
+                    printf("    (%d,14): type=%d pass=%d des=%d\n",
+                           dbx, (int)mapGet(dbx,14), (int)mapPassable(dbx,14), (int)mapDesignated(dbx,14));
+                // Print state of dwarf claiming the first stuck dig task
+                for (int j = 0; j < gTaskCount; j++) {
+                    if (!gTasks[j].done && gTasks[j].type == TASK_DIG && gTasks[j].claimed) {
+                        int who = gTasks[j].claimedBy;
+                        if (who >= 0 && who < gNumDwarves) {
+                            const Dwarf& dw = gDwarves[who];
+                            printf("    Claimed by %s (%d,%d) state=%d task=(%d,%d)\n",
+                                   dw.name, dw.x, dw.y, (int)dw.state, gTasks[j].x, gTasks[j].y);
+                        }
+                        break;
+                    }
+                }
+            }
+            sPrevDig = dig;
+            printf("  [T=%4u] alive=%d idle=%d train=%d  dig=%d chop=%d haul=%d craft=%d  "
+                   "wood=%d stone=%d food=%d drink=%d  skill=%d-%d\n",
+                   (unsigned)gTick, alive, idle, training, dig, chop, haul, craft,
+                   mapCountItemGlobal(ITEM_WOOD), mapCountItemGlobal(ITEM_STONE),
+                   gFoodSupply, gDrinkSupply, minSkill, maxSkill);
             fflush(stdout);
         }
 
@@ -231,7 +263,14 @@ static void runHeadless(int maxTicks) {
             fflush(stdout);
             break;
         }
-        if (gFortStage == FS_DONE) break;
+        if (gFortWon) {
+            int alive = 0;
+            for (int j = 0; j < gNumDwarves; j++) if (!gDwarves[j].dead) alive++;
+            printf("T=%4u  *** FORTRESS VICTORIOUS — survived %d seasons, %d dwarves alive ***\n",
+                   (unsigned)gTick, SEASONS_TO_WIN, alive);
+            fflush(stdout);
+            break;
+        }
     }
 
     int alive = 0;
@@ -283,6 +322,13 @@ int main(int argc, char** argv) {
 
             if (gFortFallen) {
                 renderFailure(gFortFallReason);
+                tft.flush(MAP_W, MAP_H);
+                break;
+            }
+            if (gFortWon) {
+                int alive = 0;
+                for (int i = 0; i < gNumDwarves; i++) if (!gDwarves[i].dead) alive++;
+                renderVictory(SEASONS_TO_WIN, alive);
                 tft.flush(MAP_W, MAP_H);
                 break;
             }

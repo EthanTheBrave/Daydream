@@ -142,6 +142,10 @@ static void tickDwarf(int idx) {
     // ---- Death check ----
     if (d.starveCount >= STARVE_TICKS || d.dehydCount >= DEHYDRATE_TICKS) {
         const char* cause = (d.dehydCount >= DEHYDRATE_TICKS) ? "dehydration" : "starvation";
+        printf("T=%u  %s died of %s  (H:%d T:%d F:%d  supply food=%d drink=%d)\n",
+            (unsigned)gTick, d.name, cause,
+            (int)d.hunger, (int)d.thirst, (int)d.fatigue,
+            gFoodSupply, gDrinkSupply);
         d.state = DS_DEAD;
         d.dead  = true;
         d.active = false;
@@ -231,7 +235,7 @@ static void tickDwarf(int idx) {
                 if (plen == 0) plen = 1; // already nearby
             } else if (t.type == TASK_CRAFT) {
                 CraftType ct = (CraftType)t.auxType;
-                if (craftWoodCost(ct) > 0 || craftBoneCost(ct) > 0) {
+                if (craftWoodCost(ct) > 0 || craftBoneCost(ct) > 0 || craftStoneCost(ct) > 0) {
                     // Fetch material from stockpile first
                     int sx = (gStockX1+gStockX2)/2, sy = (gStockY1+gStockY2)/2;
                     plen = pathFind(d.x, d.y, sx, sy, d.pathX, d.pathY, MAX_PATH_LEN);
@@ -259,8 +263,8 @@ static void tickDwarf(int idx) {
             break;
         }
 
-        // No work — consider training in barracks
-        if (d.combatSkill < COMBAT_SKILL_MAX && d.idleTicks >= 6) {
+        // No work — consider training in barracks (check before wander so idleTicks can reach threshold)
+        if (d.combatSkill < COMBAT_SKILL_MAX && d.idleTicks >= 4) {
             int bx = (FORT_BAR_X1+FORT_BAR_X2)/2, by = (FORT_BAR_Y1+FORT_BAR_Y2)/2;
             if (mapPassable(bx, by) && gMap[by][bx].roomType == ROOM_BARRACKS
                 && random(0, 4) == 0) {
@@ -302,8 +306,9 @@ static void tickDwarf(int idx) {
         // Arrived at stockpile — find and physically pick up material
         Task& ft = gTasks[d.taskIdx];
         CraftType fct = (CraftType)ft.auxType;
-        int woodCost = craftWoodCost(fct);
-        ItemType need = (woodCost > 0) ? ITEM_WOOD : ITEM_BONE;
+        int woodCost  = craftWoodCost(fct);
+        int boneCost  = craftBoneCost(fct);
+        ItemType need = (woodCost > 0) ? ITEM_WOOD : (boneCost > 0) ? ITEM_BONE : ITEM_STONE;
 
         int ix = -1, iy = -1;
         for (int sy2 = gStockY1; sy2 <= gStockY2 && ix < 0; sy2++)
@@ -425,11 +430,15 @@ static void tickDwarf(int idx) {
                 }
                 d.carrying = ITEM_NONE; // consume the carried unit
                 // Consume any additional units needed beyond the first
-                int boneCost2 = craftBoneCost(ct);
+                int boneCost2  = craftBoneCost(ct);
+                int stoneCost2 = craftStoneCost(ct);
                 if (woodCost > 1 && !mapConsumeFromStockpile(ITEM_WOOD, woodCost - 1)) {
                     taskUnclaim(d.taskIdx); d.taskIdx=-1; d.state=DS_IDLE; break;
                 }
                 if (boneCost2 > 1 && !mapConsumeFromStockpile(ITEM_BONE, boneCost2 - 1)) {
+                    taskUnclaim(d.taskIdx); d.taskIdx=-1; d.state=DS_IDLE; break;
+                }
+                if (stoneCost2 > 1 && !mapConsumeFromStockpile(ITEM_STONE, stoneCost2 - 1)) {
                     taskUnclaim(d.taskIdx); d.taskIdx=-1; d.state=DS_IDLE; break;
                 }
                 ItemType product = craftProduct(ct);

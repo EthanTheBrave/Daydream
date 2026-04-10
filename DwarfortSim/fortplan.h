@@ -14,6 +14,10 @@ extern bool gTombDug;         // has the tomb room been dug?
 extern bool gFortFallen;
 extern char gFortFallReason[48];  // e.g. "starvation", "dehydration"
 
+// Fortress victory
+extern bool     gFortWon;
+extern uint32_t gDoneTick;   // gTick when FS_DONE was entered
+
 void fortPlanInit();
 void fortPlanTick();
 

@@ -17,6 +17,9 @@ bool gTombDug      = false;
 bool gFortFallen        = false;
 char gFortFallReason[48] = "";
 
+bool     gFortWon  = false;
+uint32_t gDoneTick = 0;
+
 // Track which farms are active (TILE_FARM set)
 static bool gFarmsActive = false;
 
@@ -83,7 +86,8 @@ void fortNotifyDeath(int corpseX, int corpseY) {
     gDeadUnburied++;
 
     if (!gTombDug) {
-        fortDesignateRect(TOMB_X1, TOMB_Y1, TOMB_X2, TOMB_Y2);
+        // Mark tomb for digging; tiles are designated progressively each tick
+        // (same tile-by-tile approach as workshops) so no unreachable tasks.
         mapSetRoomRect(TOMB_X1, TOMB_Y1, TOMB_X2, TOMB_Y2, ROOM_TOMB);
         gTombDug = true;
     }
@@ -161,7 +165,7 @@ static void getCraftLoc(int* wx, int* wy) {
 //  Stage: furnish main hall
 // ----------------------------------------------------------------
 static const int8_t kHallTableX[HALL_TABLES] = {15, 17};
-static const int8_t kHallTableY[HALL_TABLES] = {14, 14};
+static const int8_t kHallTableY[HALL_TABLES] = {12, 16};
 static const int8_t kHallChairX[HALL_CHAIRS] = {15, 17, 15, 17};
 static const int8_t kHallChairY[HALL_CHAIRS] = {13, 13, 15, 15};
 
@@ -252,13 +256,27 @@ static void manageBurials() {
 //  Surface foraging
 // ----------------------------------------------------------------
 static void manageWoodSupply() {
-    if (mapCountItemGlobal(ITEM_WOOD) >= LOW_WOOD_THRESHOLD) return;
-    for (int y = 0; y < MAP_H; y++) {
-        for (int x = 0; x < HILL_START_X + 2; x++) {
-            if (!mapInBounds(x, y)) continue;
-            if (mapGet(x, y) == TILE_TREE && !mapDesignated(x, y)) {
-                mapDesignate(x, y, true);
-                taskAdd(TASK_CHOP, x, y);
+    // Designate existing trees when wood is low
+    if (mapCountItemGlobal(ITEM_WOOD) < LOW_WOOD_THRESHOLD) {
+        for (int y = 0; y < MAP_H; y++) {
+            for (int x = 0; x < HILL_START_X + 2; x++) {
+                if (!mapInBounds(x, y)) continue;
+                if (mapGet(x, y) == TILE_TREE && !mapDesignated(x, y)) {
+                    mapDesignate(x, y, true);
+                    taskAdd(TASK_CHOP, x, y);
+                }
+            }
+        }
+    }
+    // Regrow a tree on a random surface grass tile every 400 ticks
+    if (gTick % 400 == 0) {
+        for (int attempt = 0; attempt < 20; attempt++) {
+            int tx = random(1, HILL_START_X - 1);
+            int ty = random(1, MAP_H - 1);
+            if (mapGet(tx, ty) == TILE_GRASS) {
+                mapSet(tx, ty, TILE_TREE);
+                mapMarkDirty(tx, ty);
+                break;
             }
         }
     }
@@ -403,6 +421,26 @@ static void progressWorkshopDig() {
     }
 }
 
+// Each tick once gTombDug is set: designate reachable tomb wall tiles.
+static void progressTombDig() {
+    if (!gTombDug) return;
+    static const int8_t DX[4] = {1,-1,0,0};
+    static const int8_t DY[4] = {0,0,1,-1};
+    for (int y = TOMB_Y1; y <= TOMB_Y2; y++) {
+        for (int x = TOMB_X1; x <= TOMB_X2; x++) {
+            if (!mapInBounds(x, y)) continue;
+            if (mapGet(x, y) != TILE_WALL) continue;
+            if (mapDesignated(x, y)) continue;
+            bool ok = false;
+            for (int d = 0; d < 4 && !ok; d++) {
+                int nx = x + DX[d], ny = y + DY[d];
+                if (mapInBounds(nx, ny) && mapPassable(nx, ny)) ok = true;
+            }
+            if (ok) { mapDesignate(x, y, true); taskAdd(TASK_DIG, x, y); }
+        }
+    }
+}
+
 static void finaliseWorkshops() {
     // Set room types and place workshop machines
     mapSetRoomRect(FORT_WCORR_X1, FORT_WCORR_Y1, FORT_WCORR_X2, FORT_WCORR_Y2, ROOM_HALL);
@@ -536,6 +574,8 @@ void fortPlanInit() {
     gFarmsActive   = false;
     gFortFallen    = false;
     gFortFallReason[0] = '\0';
+    gFortWon   = false;
+    gDoneTick  = 0;
     strncpy(gStageName, "Arriving", sizeof(gStageName) - 1);
 }
 
@@ -554,6 +594,7 @@ void fortPlanTick() {
     manageWoodSupply();
     manageBurials();
     manageMigrants();
+    progressTombDig();  // designate reachable tomb tiles each tick
 
     switch (gFortStage) {
 
@@ -660,7 +701,8 @@ void fortPlanTick() {
         if (workshopTotalRemainingDig() > 0) break;
         finaliseWorkshops();
         gFortStage = FS_DONE;
-        strncpy(gStageName, "Fort Complete!", sizeof(gStageName)-1);
+        gDoneTick  = gTick;
+        strncpy(gStageName, "Spring", sizeof(gStageName)-1);
         break;
 
     case FS_DONE:
@@ -677,6 +719,16 @@ void fortPlanTick() {
                 if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_BONE_BROTH;
             }
         }
+        // Queue stone mugs at mason if stone available
+        if (mapCountItemGlobal(ITEM_STONE) >= CRAFT_STONE_MUG_COST
+            && !taskExistsCraft(CRAFT_STONE_MUG)) {
+            int mx = (FORT_WS_STONE_X1+FORT_WS_STONE_X2)/2;
+            int my = (FORT_WS_STONE_Y1+FORT_WS_STONE_Y2)/2;
+            if (mapPassable(mx, my)) {
+                int ti = taskAdd(TASK_CRAFT, mx, my);
+                if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_STONE_MUG;
+            }
+        }
         // Keep crafting barrels if wood available
         if (mapCountItemGlobal(ITEM_WOOD) > CRAFT_WOOD_BARREL * 2
             && !taskExistsCraft(CRAFT_BARREL)) {
@@ -684,6 +736,17 @@ void fortPlanTick() {
             int sy = (FORT_WS_STILL_Y1+FORT_WS_STILL_Y2)/2;
             int ti = taskAdd(TASK_CRAFT, sx, sy);
             if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_BARREL;
+        }
+        // Season tracking and win condition
+        {
+            static const char* kSeasons[] = {"Spring","Summer","Autumn","Winter"};
+            uint32_t elapsed = gTick - gDoneTick;
+            uint8_t  season  = (uint8_t)(elapsed / TICKS_PER_SEASON);
+            if (season < SEASONS_TO_WIN) {
+                strncpy(gStageName, kSeasons[season], sizeof(gStageName)-1);
+            } else {
+                gFortWon = true;
+            }
         }
         break;
     }

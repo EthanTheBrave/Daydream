@@ -19,8 +19,8 @@
                                  // (surface grass to the left)
 
 // --- Starting supplies (placed as items on the surface) ------------
-#define START_FOOD        60     // Food units at embark
-#define START_DRINK       60     // Drink units at embark
+#define START_FOOD        80     // Food units at embark
+#define START_DRINK       80     // Drink units at embark
 
 // --- Dwarf needs ---------------------------------------------------
 #define HUNGER_RATE        1     // Hunger added per tick
@@ -59,6 +59,7 @@
 #define CRAFT_WOOD_BARREL  2
 #define CRAFT_MUSH_FOOD_COST  2  // Mushrooms consumed per food batch (Kitchen)
 #define CRAFT_MUSH_BEER_COST  2  // Mushrooms consumed per beer batch (Still)
+#define CRAFT_STONE_MUG_COST  1  // Stone consumed per mug (Mason)
 
 // --- Death ---------------------------------------------------------
 #define STARVE_TICKS      10     // Consecutive max-hunger ticks before death
@@ -71,12 +72,12 @@
 // --- Supply replenishment (surface foraging / stream collection) ---
 // Periodic additions to food and drink supply, simulating dwarves
 // hunting/foraging and collecting water off-screen.
-#define FORAGE_FOOD_INTERVAL  25   // ticks between food top-ups
-#define FORAGE_FOOD_AMOUNT     5   // food added per top-up
-#define COLLECT_DRINK_INTERVAL 18  // ticks between drink top-ups
-#define COLLECT_DRINK_AMOUNT   5   // drink added per top-up
-#define MAX_FOOD_SUPPLY       80   // supply cap
-#define MAX_DRINK_SUPPLY      80
+#define FORAGE_FOOD_INTERVAL  15   // ticks between food top-ups
+#define FORAGE_FOOD_AMOUNT     8   // food added per top-up
+#define COLLECT_DRINK_INTERVAL 10  // ticks between drink top-ups
+#define COLLECT_DRINK_AMOUNT  10   // drink added per top-up
+#define MAX_FOOD_SUPPLY      100   // supply cap
+#define MAX_DRINK_SUPPLY     100
 
 // --- Wood supply (surface trees) -----------------------------------
 #define LOW_WOOD_THRESHOLD     4   // designate trees when wood < this
@@ -86,15 +87,21 @@
 #define MAX_MUSHROOMS_STOCKPILE 20 // stop growing if this many mushrooms in stockpile
 
 // --- Tomb (dug when a dwarf dies) ----------------------------------
-#define TOMB_X1           22
-#define TOMB_Y1           20
-#define TOMB_X2           28
-#define TOMB_Y2           24
+// Placed south of workshop corridor (y=14) at the east end, accessible
+// from corridor tiles x=44-50, y=14.
+#define TOMB_X1           44
+#define TOMB_Y1           15
+#define TOMB_X2           50
+#define TOMB_Y2           18
 
 // --- Furnishing counts ---------------------------------------------
 #define HALL_TABLES        2
 #define HALL_CHAIRS        4
 #define BED_COUNT  NUM_DWARVES
+
+// --- Win condition -------------------------------------------------
+#define TICKS_PER_SEASON  1000   // ticks per in-game season (Spring/Summer/Autumn/Winter)
+#define SEASONS_TO_WIN       4   // survive this many seasons after fort completion to win
 
 // --- Combat / Barracks (4×4 room at end of workshop wing) ----------
 #define FORT_BAR_X1  44

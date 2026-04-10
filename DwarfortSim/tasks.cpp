@@ -158,6 +158,8 @@ bool taskIsReady(int idx) {
         if (mushCost > 0) return mapCountItemGlobal(ITEM_MUSHROOM) >= mushCost;
         int boneCost = craftBoneCost(ct);
         if (boneCost > 0) return mapCountItemGlobal(ITEM_BONE) >= boneCost;
+        int stoneCost = craftStoneCost(ct);
+        if (stoneCost > 0) return mapCountItemGlobal(ITEM_STONE) >= stoneCost;
         int woodCost = craftWoodCost(ct);
         return mapCountItemGlobal(ITEM_WOOD) >= woodCost;
     }

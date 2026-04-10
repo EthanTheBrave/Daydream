@@ -288,6 +288,40 @@ void renderFailure(const char* reason) {
     tft.print(buf);
 }
 
+// ----------------------------------------------------------------
+void renderVictory(int seasons, int alive) {
+    tft.fillScreen(C_BLACK);
+
+    tft.setTextSize(2);
+    tft.setTextColor(C_YELLOW, C_BLACK);
+    tft.setCursor(22, 55);
+    tft.print("FORTRESS COMPLETE");
+
+    tft.fillRect(10, 78, MAP_W * FONT_W - 20, 2, C_YELLOW);
+
+    char buf[64];
+    snprintf(buf, sizeof(buf), "Survived %d seasons", seasons);
+    tft.setTextSize(1);
+    tft.setTextColor(C_WHITE, C_BLACK);
+    tft.setCursor(88, 96);
+    tft.print(buf);
+
+    snprintf(buf, sizeof(buf), "%d dwarves remain", alive);
+    tft.setTextColor(C_CYAN, C_BLACK);
+    tft.setCursor(94, 112);
+    tft.print(buf);
+
+    tft.setTextColor(C_DARK_GREEN, C_BLACK);
+    tft.setCursor(46, 136);
+    tft.print("The legend will be sung forever.");
+
+    snprintf(buf, sizeof(buf), "Ticks: %u", (unsigned int)gTick);
+    tft.setTextColor(C_GRAY, C_BLACK);
+    tft.setCursor(94, 160);
+    tft.print(buf);
+}
+
+// ----------------------------------------------------------------
 void renderFrame() {
     for (int i = 0; i < gNumDwarves; i++) {
         if (!gDwarves[i].active) continue;

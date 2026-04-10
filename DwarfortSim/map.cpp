@@ -95,7 +95,7 @@ bool mapPassable(int x, int y) {
     if (!mapInBounds(x, y)) return false;
     TileType t = gMap[y][x].type;
     return t == TILE_FLOOR  || t == TILE_GRASS  || t == TILE_DOOR
-        || t == TILE_RAMP   || t == TILE_STAIR
+        || t == TILE_RAMP   || t == TILE_STAIR  || t == TILE_WATER
         || t == TILE_SHRUB  || t == TILE_FLOWER || t == TILE_FARM;
 }
 
