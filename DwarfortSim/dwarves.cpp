@@ -214,6 +214,25 @@ static void tickDwarf(int idx) {
     case DS_IDLE: {
         d.idleTicks++;
         int ti = taskFindBest(d.x, d.y);
+
+        // When no urgent dig/chop work: let idle dwarves train in barracks
+        bool urgentTask = (ti >= 0 &&
+            (gTasks[ti].type == TASK_DIG || gTasks[ti].type == TASK_CHOP));
+        if (!urgentTask && d.combatSkill < COMBAT_SKILL_MAX && d.idleTicks >= 1) {
+            int bx = (FORT_BAR_X1+FORT_BAR_X2)/2, by = (FORT_BAR_Y1+FORT_BAR_Y2)/2;
+            if (mapPassable(bx, by) && gMap[by][bx].roomType == ROOM_BARRACKS
+                && random(0, 4) == 0) {
+                int plen = pathFind(d.x, d.y, bx, by, d.pathX, d.pathY, MAX_PATH_LEN);
+                if (plen > 0) {
+                    d.pathLen = (uint8_t)plen; d.pathPos = 0;
+                    d.state   = DS_TRAINING;
+                    d.workLeft = COMBAT_TRAIN_DURATION;
+                    d.idleTicks = 0;
+                    break;
+                }
+            }
+        }
+
         if (ti >= 0) {
             d.idleTicks = 0;
             gTasks[ti].claimed   = true;
@@ -261,22 +280,6 @@ static void tickDwarf(int idx) {
             d.pathPos = 0;
             d.state   = startFetch ? DS_FETCHING : DS_MOVING;
             break;
-        }
-
-        // No work — consider training in barracks (check before wander so idleTicks can reach threshold)
-        if (d.combatSkill < COMBAT_SKILL_MAX && d.idleTicks >= 4) {
-            int bx = (FORT_BAR_X1+FORT_BAR_X2)/2, by = (FORT_BAR_Y1+FORT_BAR_Y2)/2;
-            if (mapPassable(bx, by) && gMap[by][bx].roomType == ROOM_BARRACKS
-                && random(0, 4) == 0) {
-                int plen = pathFind(d.x, d.y, bx, by, d.pathX, d.pathY, MAX_PATH_LEN);
-                if (plen > 0) {
-                    d.pathLen = (uint8_t)plen; d.pathPos = 0;
-                    d.state   = DS_TRAINING;
-                    d.workLeft = COMBAT_TRAIN_DURATION;
-                    d.idleTicks = 0;
-                    break;
-                }
-            }
         }
 
         // No work — wander
@@ -329,8 +332,11 @@ static void tickDwarf(int idx) {
 
     // ---- TRAINING (moving to / training in barracks) ----
     case DS_TRAINING: {
-        // Real work takes priority over training
-        if (taskFindBest(d.x, d.y) >= 0) { d.state=DS_IDLE; break; }
+        // Only urgent dig/chop interrupts training; haul/craft can wait
+        int urgTi = taskFindBest(d.x, d.y);
+        if (urgTi >= 0 && gTasks[urgTi].type == TASK_DIG) {
+            d.state = DS_IDLE; break;
+        }
         if (d.pathPos < d.pathLen) { dwarfMove(idx); break; }
 
         // Inside barracks — train
