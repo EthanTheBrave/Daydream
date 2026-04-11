@@ -1,5 +1,7 @@
 #include "animals.h"
 #include "map.h"
+#include "tasks.h"
+#include "dwarves.h"
 #include "fortplan.h"
 #include "config.h"
 #include <Arduino.h>
@@ -137,6 +139,28 @@ void animalsTick() {
     // Cats appear only once fort has a hall
     if (gFortStage >= FS_FURNISH_HALL && gTick % CAT_SPAWN_INTERVAL == 0)
         spawnAnimal(ANIMAL_CAT);
+
+    // Sheep harvest: periodically butcher one sheep (if ≥2 present) for food + bone
+    if (gTick > 0 && gTick % SHEEP_HARVEST_INTERVAL == 0) {
+        int sheepCount = 0;
+        for (int i = 0; i < gNumAnimals; i++)
+            if (gAnimals[i].active && gAnimals[i].type == ANIMAL_SHEEP) sheepCount++;
+        if (sheepCount >= 2) {
+            for (int i = 0; i < gNumAnimals; i++) {
+                if (!gAnimals[i].active || gAnimals[i].type != ANIMAL_SHEEP) continue;
+                Animal& a = gAnimals[i];
+                a.active = false;
+                mapMarkDirty(a.x, a.y);
+                gFoodSupply = min(gFoodSupply + SHEEP_MEAT_FOOD, (int)MAX_FOOD_SUPPLY);
+                mapAddItem(a.x, a.y, ITEM_BONE);
+                int bsx, bsy;
+                if (stockpileFindSlot(&bsx, &bsy))
+                    taskAdd(TASK_HAUL, a.x, a.y, bsx, bsy);
+                Serial.println("Sheep harvested for meat");
+                break;
+            }
+        }
+    }
 
     for (int i = 0; i < gNumAnimals; i++) {
         if (!gAnimals[i].active) continue;

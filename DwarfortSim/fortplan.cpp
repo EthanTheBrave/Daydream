@@ -6,6 +6,94 @@
 #include <string.h>
 #include <Arduino.h>
 
+// ----------------------------------------------------------------
+//  Per-run layout — randomized each game from the map seed
+// ----------------------------------------------------------------
+static int sHX1, sHY1, sHX2, sHY2;          // Main hall
+static int sNX1, sNY1, sNX2, sNY2;          // N corridor
+static int sPX1, sPY1, sPX2, sPY2;          // Stockpile room
+static int sSX1, sSY1, sSX2, sSY2;          // S corridor
+static int sBX1, sBY1, sBX2, sBY2, sBCY;   // Bedrooms + corridor row
+static int sEX1, sEY1, sEX2, sEY2;          // E corridor
+static int sHallCx;                          // Hall horizontal centre
+
+// Furniture positions (computed from layout, filled in computeLayout)
+static int8_t gHallTableX[HALL_TABLES];
+static int8_t gHallTableY[HALL_TABLES];
+static int8_t gHallChairX[HALL_CHAIRS];
+static int8_t gHallChairY[HALL_CHAIRS];
+static int8_t gBedX[BED_COUNT];
+static int8_t gBedY[BED_COUNT];
+
+static void computeLayout() {
+    // ---- Hall: odd width/height, centered on y=14, starts at x=13 ----
+    int hallW = 5 + 2 * random(0, 3);   // 5, 7, or 9
+    int hallH = 5 + 2 * random(0, 3);   // 5, 7, or 9
+    sHX1  = FORT_ENTRANCE_X2 + 1;        // always x=13
+    sHX2  = sHX1 + hallW - 1;
+    sHY1  = 14 - hallH / 2;
+    sHY2  = 14 + hallH / 2;
+    sHallCx = (sHX1 + sHX2) / 2;
+
+    // ---- N corridor: 1 or 3 wide, 2-3 tiles tall, above hall ----
+    int ncorrW   = random(0, 2) ? 3 : 1;
+    int ncorrLen = 2 + random(0, 2);
+    sNX1 = sHallCx - ncorrW / 2;
+    sNX2 = sHallCx + ncorrW / 2;
+    sNY2 = sHY1 - 1;
+    sNY1 = sNY2 - ncorrLen + 1;
+
+    // ---- Stockpile: 6 or 8 wide, 3 or 4 tall, above N corridor ----
+    int stockW = 6 + 2 * random(0, 2);
+    int stockH = 3 + random(0, 2);
+    sPX1 = sHallCx - stockW / 2;
+    sPX2 = sPX1 + stockW - 1;
+    sPY2 = sNY1 - 1;
+    sPY1 = sPY2 - stockH + 1;
+    if (sPY1 < 1) sPY1 = 1;
+    if (sPX1 < 1) sPX1 = 1;
+    if (sPX2 >= MAP_W) sPX2 = MAP_W - 2;
+
+    // ---- S corridor: same x as N corridor, below hall ----
+    int scorrLen = 2 + random(0, 2);
+    sSX1 = sNX1;
+    sSX2 = sNX2;
+    sSY1 = sHY2 + 1;
+    sSY2 = sSY1 + scorrLen - 1;
+
+    // ---- Bedrooms: 3N + corridor + 3S, below S corridor ----
+    // Connecting passage aligns with sHallCx (= sBX1+3)
+    sBX1 = sHallCx - 3;
+    sBX2 = sBX1 + 9;
+    sBY1 = sSY2 + 1;    // immediately below S corridor
+    sBCY = sBY1 + 2;    // bedroom corridor row
+    sBY2 = sBY1 + 4;
+    if (sBY2 >= MAP_H - 1) { sBY2 = MAP_H - 2; sBCY = sBY1 + (sBY2 - sBY1) / 2; }
+    if (sBX1 < 1) sBX1 = 1;
+    if (sBX2 >= MAP_W) sBX2 = MAP_W - 2;
+
+    // ---- E corridor: hall east wall → x=22, y=12-14 ----
+    sEX1 = sHX2 + 1;
+    sEX2 = FORT_ECORR_X2;
+    sEY1 = FORT_ECORR_Y1;
+    sEY2 = FORT_ECORR_Y2;
+
+    // ---- Hall furniture ----
+    gHallTableX[0] = (int8_t)(sHX1 + 1);      gHallTableY[0] = (int8_t)(sHY1 + 1);
+    gHallTableX[1] = (int8_t)(sHX2 - 1);      gHallTableY[1] = (int8_t)(sHY2 - 1);
+    gHallChairX[0] = (int8_t)(sHX1 + 2);      gHallChairY[0] = (int8_t)(sHY1 + 1);
+    gHallChairX[1] = (int8_t)(sHX1 + 1);      gHallChairY[1] = (int8_t)(sHY1 + 2);
+    gHallChairX[2] = (int8_t)(sHX2 - 2);      gHallChairY[2] = (int8_t)(sHY2 - 1);
+    gHallChairX[3] = (int8_t)(sHX2 - 1);      gHallChairY[3] = (int8_t)(sHY2 - 2);
+
+    // ---- Bed positions (one per 2×2 room) ----
+    static const int kOff[3] = {0, 4, 7};
+    for (int i = 0; i < 3; i++) {
+        gBedX[i]   = (int8_t)(sBX1 + kOff[i]);  gBedY[i]   = (int8_t)sBY1;
+        gBedX[i+3] = (int8_t)(sBX1 + kOff[i]);  gBedY[i+3] = (int8_t)sBY2;
+    }
+}
+
 FortStage gFortStage  = FS_ARRIVAL;
 uint32_t  gTick       = 0;
 char      gStageName[24] = "Arriving";
@@ -93,8 +181,8 @@ void fortNotifyDeath(int corpseX, int corpseY) {
     }
 
     if (!taskExistsCraft(CRAFT_COFFIN)) {
-        int wx = (FORT_HALL_X1+FORT_HALL_X2)/2;
-        int wy = (FORT_HALL_Y1+FORT_HALL_Y2)/2;
+        int wx = (sHX1+sHX2)/2;
+        int wy = (sHY1+sHY2)/2;
         // Use a workshop if available
         if (mapPassable((FORT_WS_WOOD_X1+FORT_WS_WOOD_X2)/2,
                         (FORT_WS_WOOD_Y1+FORT_WS_WOOD_Y2)/2)) {
@@ -152,8 +240,8 @@ static int woodWkX() { return (FORT_WS_WOOD_X1+FORT_WS_WOOD_X2)/2; }
 static int woodWkY() { return (FORT_WS_WOOD_Y1+FORT_WS_WOOD_Y2)/2; }
 static bool woodWkReady() { return mapPassable(woodWkX(), woodWkY()); }
 
-static int hallCx() { return (FORT_HALL_X1+FORT_HALL_X2)/2; }
-static int hallCy() { return (FORT_HALL_Y1+FORT_HALL_Y2)/2; }
+static int hallCx() { return (sHX1+sHX2)/2; }
+static int hallCy() { return (sHY1+sHY2)/2; }
 
 // Craft location: use woodworker shop if dug, else hall centre
 static void getCraftLoc(int* wx, int* wy) {
@@ -164,18 +252,13 @@ static void getCraftLoc(int* wx, int* wy) {
 // ----------------------------------------------------------------
 //  Stage: furnish main hall
 // ----------------------------------------------------------------
-static const int8_t kHallTableX[HALL_TABLES] = {15, 17};
-static const int8_t kHallTableY[HALL_TABLES] = {12, 16};
-static const int8_t kHallChairX[HALL_CHAIRS] = {15, 17, 15, 17};
-static const int8_t kHallChairY[HALL_CHAIRS] = {13, 13, 15, 15};
-
 static void manageFurnishHall() {
     int wx, wy; getCraftLoc(&wx, &wy);
 
     int tablesMade = mapCountItemGlobal(ITEM_TABLE_I)
-                   + mapCountTileInRect(FORT_HALL_X1,FORT_HALL_Y1,FORT_HALL_X2,FORT_HALL_Y2,TILE_TABLE);
+                   + mapCountTileInRect(sHX1,sHY1,sHX2,sHY2,TILE_TABLE);
     int chairsMade = mapCountItemGlobal(ITEM_CHAIR)
-                   + mapCountTileInRect(FORT_HALL_X1,FORT_HALL_Y1,FORT_HALL_X2,FORT_HALL_Y2,TILE_CHAIR);
+                   + mapCountTileInRect(sHX1,sHY1,sHX2,sHY2,TILE_CHAIR);
 
     if (!taskExistsCraft(CRAFT_TABLE)) {
         for (int i = tablesMade; i < HALL_TABLES; i++) {
@@ -191,48 +274,51 @@ static void manageFurnishHall() {
     }
 
     for (int i = 0; i < HALL_TABLES; i++) {
-        if (mapGet(kHallTableX[i], kHallTableY[i]) != TILE_TABLE)
-            queuePlace(ITEM_TABLE_I, kHallTableX[i], kHallTableY[i]);
+        if (mapGet(gHallTableX[i], gHallTableY[i]) != TILE_TABLE)
+            queuePlace(ITEM_TABLE_I, gHallTableX[i], gHallTableY[i]);
     }
     for (int i = 0; i < HALL_CHAIRS; i++) {
-        if (mapGet(kHallChairX[i], kHallChairY[i]) != TILE_CHAIR)
-            queuePlace(ITEM_CHAIR, kHallChairX[i], kHallChairY[i]);
+        if (mapGet(gHallChairX[i], gHallChairY[i]) != TILE_CHAIR)
+            queuePlace(ITEM_CHAIR, gHallChairX[i], gHallChairY[i]);
     }
 }
 
 static bool furnishHallComplete() {
-    int tables = mapCountTileInRect(FORT_HALL_X1,FORT_HALL_Y1,FORT_HALL_X2,FORT_HALL_Y2,TILE_TABLE);
-    int chairs = mapCountTileInRect(FORT_HALL_X1,FORT_HALL_Y1,FORT_HALL_X2,FORT_HALL_Y2,TILE_CHAIR);
+    int tables = mapCountTileInRect(sHX1,sHY1,sHX2,sHY2,TILE_TABLE);
+    int chairs = mapCountTileInRect(sHX1,sHY1,sHX2,sHY2,TILE_CHAIR);
     return tables >= HALL_TABLES && chairs >= HALL_CHAIRS;
 }
 
 // ----------------------------------------------------------------
-//  Stage: furnish bedrooms
+//  Stage: furnish bedrooms — 6 beds, one per small room
 // ----------------------------------------------------------------
+// gBedX/gBedY are filled by computeLayout() using sBX1, sBY1, sBY2
+
 static void manageFurnishBed() {
     int wx, wy; getCraftLoc(&wx, &wy);
 
-    int placed  = mapCountTileInRect(FORT_BED_X1,FORT_BED_Y1,FORT_BED_X2,FORT_BED_Y2,TILE_BED);
+    int placed  = mapCountTileInRect(sBX1,sBY1,sBX2,sBY2,TILE_BED);
     int inStock = mapCountItemGlobal(ITEM_BED_I);
-    int totalNeeded = min((int)BED_COUNT, (FORT_BED_X2 - FORT_BED_X1 - 1));
 
     if (!taskExistsCraft(CRAFT_BED)) {
-        for (int i = placed + inStock; i < totalNeeded; i++) {
+        // Only queue as many beds as current wood supply can fund
+        int woodAvail = mapCountItemGlobal(ITEM_WOOD);
+        int canMake   = (CRAFT_WOOD_BED > 0) ? woodAvail / CRAFT_WOOD_BED : BED_COUNT;
+        int toQueue   = min(BED_COUNT - placed - inStock, canMake);
+        for (int i = 0; i < toQueue; i++) {
             int ti = taskAdd(TASK_CRAFT, wx, wy);
             if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_BED;
         }
     }
 
-    int slot = 0;
-    for (int bx = FORT_BED_X1 + 1; bx <= FORT_BED_X2 - 1 && slot < totalNeeded; bx += 2, slot++) {
-        int by = (slot % 2 == 0) ? FORT_BED_Y1 + 1 : FORT_BED_Y2 - 1;
-        if (mapGet(bx, by) != TILE_BED) queuePlace(ITEM_BED_I, bx, by);
+    for (int i = 0; i < BED_COUNT; i++) {
+        if (mapGet(gBedX[i], gBedY[i]) != TILE_BED)
+            queuePlace(ITEM_BED_I, gBedX[i], gBedY[i]);
     }
 }
 
 static bool furnishBedComplete() {
-    int totalNeeded = min((int)BED_COUNT, (FORT_BED_X2 - FORT_BED_X1 - 1));
-    return mapCountTileInRect(FORT_BED_X1,FORT_BED_Y1,FORT_BED_X2,FORT_BED_Y2,TILE_BED) >= totalNeeded;
+    return mapCountTileInRect(sBX1,sBY1,sBX2,sBY2,TILE_BED) >= BED_COUNT;
 }
 
 // ----------------------------------------------------------------
@@ -468,8 +554,8 @@ static void finaliseWorkshops() {
     }
 
     // Place door at workshop corridor entrance
-    int doorX = FORT_ECORR_X1 + 1;
-    int doorY = (FORT_ECORR_Y1 + FORT_ECORR_Y2) / 2;
+    int doorX = sEX1 + 1;
+    int doorY = (sEY1 + sEY2) / 2;
     if (!taskExistsPlaceFurn(doorX, doorY)) {
         int wx, wy; getCraftLoc(&wx, &wy);
         int ti = taskAdd(TASK_CRAFT, wx, wy);
@@ -577,6 +663,7 @@ void fortPlanInit() {
     gFortWon   = false;
     gDoneTick  = 0;
     strncpy(gStageName, "Arriving", sizeof(gStageName) - 1);
+    computeLayout();   // randomize room positions from the already-seeded RNG
 }
 
 // ----------------------------------------------------------------
@@ -613,83 +700,98 @@ void fortPlanTick() {
                        FORT_ENTRANCE_X2, FORT_ENTRANCE_Y2, ROOM_HALL);
         gFortStage = FS_MAIN_HALL;
         strncpy(gStageName, "Digging Main Hall", sizeof(gStageName)-1);
-        fortDesignateRect(FORT_HALL_X1, FORT_HALL_Y1, FORT_HALL_X2, FORT_HALL_Y2);
+        fortDesignateRect(sHX1, sHY1, sHX2, sHY2);
         break;
 
     case FS_MAIN_HALL:
-        if (fortCountRemainingDig(FORT_HALL_X1, FORT_HALL_Y1,
-                                  FORT_HALL_X2, FORT_HALL_Y2) > 0) break;
-        mapSetRoomRect(FORT_HALL_X1, FORT_HALL_Y1, FORT_HALL_X2, FORT_HALL_Y2, ROOM_HALL);
+        if (fortCountRemainingDig(sHX1, sHY1, sHX2, sHY2) > 0) break;
+        mapSetRoomRect(sHX1, sHY1, sHX2, sHY2, ROOM_HALL);
         // Temporary stockpile in hall while real one is being dug
-        gStockX1=FORT_HALL_X1+1; gStockY1=FORT_HALL_Y1+1;
-        gStockX2=FORT_HALL_X2-1; gStockY2=FORT_HALL_Y2-1;
+        gStockX1=sHX1+1; gStockY1=sHY1+1;
+        gStockX2=sHX2-1; gStockY2=sHY2-1;
         requeueWoodHauls();
-        gFortStage = FS_FURNISH_HALL;
-        strncpy(gStageName, "Furnishing Hall", sizeof(gStageName)-1);
-        break;
-
-    case FS_FURNISH_HALL:
-        manageFurnishHall();
-        if (furnishHallComplete() || mapCountItemGlobal(ITEM_WOOD) == 0) {
-            gFortStage = FS_N_CORRIDOR;
-            strncpy(gStageName, "N. Corridor", sizeof(gStageName)-1);
-            fortDesignateRect(FORT_NCORR_X1, FORT_NCORR_Y1, FORT_NCORR_X2, FORT_NCORR_Y2);
-        }
+        gFortStage = FS_N_CORRIDOR;
+        strncpy(gStageName, "N. Corridor", sizeof(gStageName)-1);
+        fortDesignateRect(sNX1, sNY1, sNX2, sNY2);
         break;
 
     case FS_N_CORRIDOR:
-        manageFurnishHall();
-        if (fortCountRemainingDig(FORT_NCORR_X1, FORT_NCORR_Y1,
-                                  FORT_NCORR_X2, FORT_NCORR_Y2) > 0) break;
-        mapSetRoomRect(FORT_NCORR_X1, FORT_NCORR_Y1, FORT_NCORR_X2, FORT_NCORR_Y2, ROOM_HALL);
+        if (fortCountRemainingDig(sNX1, sNY1, sNX2, sNY2) > 0) break;
+        mapSetRoomRect(sNX1, sNY1, sNX2, sNY2, ROOM_HALL);
         gFortStage = FS_STOCKPILE;
         strncpy(gStageName, "Stockpile Room", sizeof(gStageName)-1);
-        fortDesignateRect(FORT_STOCK_X1, FORT_STOCK_Y1, FORT_STOCK_X2, FORT_STOCK_Y2);
+        fortDesignateRect(sPX1, sPY1, sPX2, sPY2);
         break;
 
     case FS_STOCKPILE:
-        if (fortCountRemainingDig(FORT_STOCK_X1, FORT_STOCK_Y1,
-                                  FORT_STOCK_X2, FORT_STOCK_Y2) > 0) break;
-        mapSetRoomRect(FORT_STOCK_X1, FORT_STOCK_Y1, FORT_STOCK_X2, FORT_STOCK_Y2, ROOM_STOCKPILE);
-        gStockX1=FORT_STOCK_X1; gStockY1=FORT_STOCK_Y1;
-        gStockX2=FORT_STOCK_X2; gStockY2=FORT_STOCK_Y2;
+        if (fortCountRemainingDig(sPX1, sPY1, sPX2, sPY2) > 0) break;
+        mapSetRoomRect(sPX1, sPY1, sPX2, sPY2, ROOM_STOCKPILE);
+        gStockX1=sPX1; gStockY1=sPY1;
+        gStockX2=sPX2; gStockY2=sPY2;
         requeueWoodHauls();
         gFortStage = FS_S_CORRIDOR;
         strncpy(gStageName, "S. Corridor", sizeof(gStageName)-1);
-        fortDesignateRect(FORT_SCORR_X1, FORT_SCORR_Y1, FORT_SCORR_X2, FORT_SCORR_Y2);
+        fortDesignateRect(sSX1, sSY1, sSX2, sSY2);
         break;
 
     case FS_S_CORRIDOR:
-        if (fortCountRemainingDig(FORT_SCORR_X1, FORT_SCORR_Y1,
-                                  FORT_SCORR_X2, FORT_SCORR_Y2) > 0) break;
-        mapSetRoomRect(FORT_SCORR_X1, FORT_SCORR_Y1, FORT_SCORR_X2, FORT_SCORR_Y2, ROOM_HALL);
+        if (fortCountRemainingDig(sSX1, sSY1, sSX2, sSY2) > 0) break;
+        mapSetRoomRect(sSX1, sSY1, sSX2, sSY2, ROOM_HALL);
         gFortStage = FS_BEDROOMS;
         strncpy(gStageName, "Bedrooms", sizeof(gStageName)-1);
-        fortDesignateRect(FORT_BED_X1, FORT_BED_Y1, FORT_BED_X2, FORT_BED_Y2);
+        // Connecting passage from S. Corridor (single column, aligned with hall centre)
+        fortDesignateRect(sHallCx, sBY1, sHallCx, sBCY - 1);
+        // East-west bedroom corridor
+        fortDesignateRect(sBX1, sBCY, sBX2, sBCY);
+        // 3 north rooms (2×2 interior each; dividing walls stay solid)
+        fortDesignateRect(sBX1,   sBY1, sBX1+1, sBCY-1);
+        fortDesignateRect(sBX1+4, sBY1, sBX1+5, sBCY-1);
+        fortDesignateRect(sBX1+7, sBY1, sBX1+8, sBCY-1);
+        // 3 south rooms
+        fortDesignateRect(sBX1,   sBCY+1, sBX1+1, sBY2);
+        fortDesignateRect(sBX1+4, sBCY+1, sBX1+5, sBY2);
+        fortDesignateRect(sBX1+7, sBCY+1, sBX1+8, sBY2);
         break;
 
-    case FS_BEDROOMS:
-        if (fortCountRemainingDig(FORT_BED_X1, FORT_BED_Y1,
-                                  FORT_BED_X2, FORT_BED_Y2) > 0) break;
-        mapSetRoomRect(FORT_BED_X1, FORT_BED_Y1, FORT_BED_X2, FORT_BED_Y2, ROOM_BEDROOM);
+    case FS_BEDROOMS: {
+        // Done when all 8 sub-rects are fully dug
+        int bedLeft = 0;
+        bedLeft += fortCountRemainingDig(sHallCx, sBY1, sHallCx, sBCY-1);
+        bedLeft += fortCountRemainingDig(sBX1, sBCY, sBX2, sBCY);
+        bedLeft += fortCountRemainingDig(sBX1,   sBY1, sBX1+1, sBCY-1);
+        bedLeft += fortCountRemainingDig(sBX1+4, sBY1, sBX1+5, sBCY-1);
+        bedLeft += fortCountRemainingDig(sBX1+7, sBY1, sBX1+8, sBCY-1);
+        bedLeft += fortCountRemainingDig(sBX1,   sBCY+1, sBX1+1, sBY2);
+        bedLeft += fortCountRemainingDig(sBX1+4, sBCY+1, sBX1+5, sBY2);
+        bedLeft += fortCountRemainingDig(sBX1+7, sBCY+1, sBX1+8, sBY2);
+        if (bedLeft > 0) break;
+        mapSetRoomRect(sBX1, sBY1, sBX2, sBY2, ROOM_BEDROOM);
         gFortStage = FS_FURNISH_BED;
         strncpy(gStageName, "Furnishing Beds", sizeof(gStageName)-1);
         break;
+    }
 
-    case FS_FURNISH_BED:
+    case FS_FURNISH_BED: {
         manageFurnishBed();
-        if (furnishBedComplete() || mapCountItemGlobal(ITEM_WOOD) == 0) {
+        // Track when this stage started so we can time out gracefully.
+        static uint32_t sFurnishBedStart = 0;
+        if (sFurnishBedStart == 0) sFurnishBedStart = gTick;
+        // Advance when all beds placed, or after 400 ticks (remaining beds placed
+        // later during FS_WORKSHOPS/FS_DONE as wood and crafters become available).
+        bool bedTimeout = (gTick - sFurnishBedStart) >= 400;
+        if (furnishBedComplete() || bedTimeout) {
+            sFurnishBedStart = 0;  // reset for next run
             gFortStage = FS_E_CORRIDOR;
             strncpy(gStageName, "E. Corridor", sizeof(gStageName)-1);
-            fortDesignateRect(FORT_ECORR_X1, FORT_ECORR_Y1, FORT_ECORR_X2, FORT_ECORR_Y2);
+            fortDesignateRect(sEX1, sEY1, sEX2, sEY2);
         }
         break;
+    }
 
     case FS_E_CORRIDOR:
         manageFurnishBed();
-        if (fortCountRemainingDig(FORT_ECORR_X1, FORT_ECORR_Y1,
-                                  FORT_ECORR_X2, FORT_ECORR_Y2) > 0) break;
-        mapSetRoomRect(FORT_ECORR_X1, FORT_ECORR_Y1, FORT_ECORR_X2, FORT_ECORR_Y2, ROOM_HALL);
+        if (fortCountRemainingDig(sEX1, sEY1, sEX2, sEY2) > 0) break;
+        mapSetRoomRect(sEX1, sEY1, sEX2, sEY2, ROOM_HALL);
         gFortStage = FS_WORKSHOPS;
         strncpy(gStageName, "Workshop Wing", sizeof(gStageName)-1);
         designateAllWorkshops();
@@ -706,6 +808,8 @@ void fortPlanTick() {
         break;
 
     case FS_DONE:
+        manageFurnishBed();   // finish any remaining beds (may have timed out earlier)
+        manageFurnishHall();  // hall furniture crafted at woodworker workshop
         manageFarms();
         manageMushProcessing();
         // Queue bone broth at kitchen if food low and bones available

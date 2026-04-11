@@ -72,7 +72,7 @@ void taskUnclaim(int idx) {
 }
 
 // ----------------------------------------------------------------
-// Priority order: urgent survival/structural tasks first, crafting last
+// Priority order: structural first, then haul/place, crafting last
 static const TaskType kPriority[] = {
     TASK_DIG, TASK_CHOP, TASK_BURY, TASK_HAUL, TASK_PLACE_FURN, TASK_CRAFT
 };

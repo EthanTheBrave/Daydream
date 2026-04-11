@@ -183,7 +183,8 @@ static void tickDwarf(int idx) {
     } while(0)
 
     // ---- Critical needs override current task ----
-    if (d.state != DS_EATING && d.state != DS_DRINKING && d.state != DS_SLEEPING) {
+    // DS_SLEEPING during movement phase must still respond to hunger/thirst
+    if (d.state != DS_EATING && d.state != DS_DRINKING) {
         if (d.thirst >= THIRST_THRESH && gDrinkSupply > 0) {
             UNCLAIM_TASK();
             d.state    = DS_DRINKING;
@@ -198,11 +199,26 @@ static void tickDwarf(int idx) {
             d.pathLen  = 0; d.pathPos = 0;
             return;
         }
-        if (d.fatigue >= FATIGUE_THRESH) {
+        if (d.fatigue >= FATIGUE_THRESH && d.state != DS_SLEEPING) {
             UNCLAIM_TASK();
             d.state    = DS_SLEEPING;
             d.workLeft = SLEEP_TICKS;
-            d.pathLen  = 0; d.pathPos = 0;
+            // Find nearest unoccupied TILE_BED and path toward it
+            int bestBedX = -1, bestBedY = -1, bestDist = 9999;
+            for (int by = 0; by < MAP_H; by++) {
+                for (int bx = 0; bx < MAP_W; bx++) {
+                    if (mapGet(bx, by) != TILE_BED) continue;
+                    if (dwarfAt(bx, by, idx)) continue; // already occupied
+                    int dist = abs(bx - d.x) + abs(by - d.y);
+                    if (dist < bestDist) { bestDist = dist; bestBedX = bx; bestBedY = by; }
+                }
+            }
+            d.pathLen = 0; d.pathPos = 0;
+            if (bestBedX >= 0) {
+                int plen = pathFind(d.x, d.y, bestBedX, bestBedY,
+                                    d.pathX, d.pathY, MAX_PATH_LEN);
+                if (plen > 0) { d.pathLen = (uint8_t)plen; d.pathPos = 0; }
+            }
             return;
         }
     }
@@ -555,6 +571,21 @@ static void tickDwarf(int idx) {
 
     // ---- SLEEPING ----
     case DS_SLEEPING: {
+        // Still walking to bed — move one step
+        if (d.pathLen > 0 && d.pathPos < d.pathLen) {
+            int nx = d.pathX[d.pathPos], ny = d.pathY[d.pathPos];
+            if (!mapPassable(nx, ny)) {
+                d.pathLen = 0; // path blocked, sleep in place
+            } else if (!dwarfAt(nx, ny, idx)) {
+                mapMarkDirty(d.x, d.y);
+                d.lastX = d.x; d.lastY = d.y;
+                d.x = (int8_t)nx; d.y = (int8_t)ny;
+                mapMarkDirty(d.x, d.y);
+                d.pathPos++;
+            }
+            break; // don't sleep this tick, still moving
+        }
+        // Arrived (or no path) — sleep here
         int restore = nearBed(d) ? SLEEP_RESTORE * 2 : SLEEP_RESTORE;
         if (d.workLeft > 0) {
             d.workLeft--;
@@ -562,6 +593,7 @@ static void tickDwarf(int idx) {
             break;
         }
         d.state = DS_IDLE;
+        d.pathLen = 0; d.pathPos = 0;
         break;
     }
 

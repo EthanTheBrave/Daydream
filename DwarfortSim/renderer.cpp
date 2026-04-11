@@ -1,6 +1,7 @@
 #include "renderer.h"
 #include "map.h"
 #include "dwarves.h"
+#include "tasks.h"
 #include "fortplan.h"
 #include "animals.h"
 #include "goblins.h"
@@ -121,7 +122,7 @@ static void tileVisual(int x, int y, char* ch, uint16_t* fg, uint16_t* bg) {
             case ITEM_CHAIR:    *ch = 'h'; *fg = C_BROWN;      return;
             case ITEM_COFFIN:   *ch = '|'; *fg = C_GRAY;       return;
             case ITEM_BARREL:   *ch = 'O'; *fg = C_BROWN;      return;
-            case ITEM_CORPSE:   *ch = 'X'; *fg = C_RED;        return;
+            case ITEM_CORPSE:   *ch = '\x02'; *fg = C_DARK_GRAY; return;
             case ITEM_BED_I:    *ch = '['; *fg = C_CYAN;       return;
             case ITEM_TABLE_I:  *ch = 'n'; *fg = C_BROWN;      return;
             case ITEM_DOOR_I:   *ch = '+'; *fg = C_BROWN;      return;
@@ -219,10 +220,20 @@ static void drawCell(int x, int y) {
 // ----------------------------------------------------------------
 static void drawStatus() {
     char buf[80];
-    int alive = 0;
-    for (int i = 0; i < gNumDwarves; i++) if (!gDwarves[i].dead) alive++;
-    snprintf(buf, sizeof(buf), "T:%-5u @%d F:%d Dr:%d  %s",
-             (unsigned int)gTick, alive,
+    int alive = 0, dig = 0, haul = 0, craft = 0, train = 0;
+    for (int i = 0; i < gNumDwarves; i++) {
+        if (gDwarves[i].dead) continue;
+        alive++;
+        if (gDwarves[i].state == DS_TRAINING) train++;
+    }
+    for (int i = 0; i < gTaskCount; i++) {
+        if (gTasks[i].done) continue;
+        if (gTasks[i].type == TASK_DIG)   dig++;
+        if (gTasks[i].type == TASK_HAUL)  haul++;
+        if (gTasks[i].type == TASK_CRAFT) craft++;
+    }
+    snprintf(buf, sizeof(buf), "@%d d:%d h:%d c:%d t:%d  F:%d Dr:%d  %s",
+             alive, dig, haul, craft, train,
              gFoodSupply, gDrinkSupply,
              gStageName);
 

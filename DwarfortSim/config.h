@@ -14,7 +14,7 @@
                                  // Lower = faster simulation
 
 // --- Map -----------------------------------------------------------
-#define MAP_SEED       42424     // Change for a different map layout
+#define MAP_SEED           0     // 0 = random each run; set a number for a fixed layout
 #define HILL_START_X      10     // Column where the hill face begins
                                  // (surface grass to the left)
 
@@ -97,7 +97,7 @@
 // --- Furnishing counts ---------------------------------------------
 #define HALL_TABLES        2
 #define HALL_CHAIRS        4
-#define BED_COUNT  NUM_DWARVES
+#define BED_COUNT  6           // one bed per small room (3 north + 3 south)
 
 // --- Win condition -------------------------------------------------
 #define TICKS_PER_SEASON  1000   // ticks per in-game season (Spring/Summer/Autumn/Winter)
@@ -114,6 +114,8 @@
 #define COMBAT_SKILL_MAX       80    // max combat skill
 
 // --- Animals -------------------------------------------------------
+#define SHEEP_HARVEST_INTERVAL 700  // ticks between sheep harvests (600 = spawn interval)
+#define SHEEP_MEAT_FOOD          3  // food supply added per sheep harvested
 #define MAX_ANIMALS         8    // max sheep + cats on map at once
 #define ANIMAL_WANDER_TICKS 3    // ticks between animal moves
 #define CAT_HAPPINESS_RADIUS 3   // tiles away from cat that dwarves feel happy
@@ -168,11 +170,15 @@
 #define FORT_SCORR_X2     17
 #define FORT_SCORR_Y2     20
 
-// Bedroom (8×5)
+// Bedrooms — 6 small 2×2 rooms off a central corridor
+// Layout: 3 rooms north (y=21..22) + corridor (y=23) + 3 rooms south (y=24..25)
+// Connecting passage at x=16 links to S. Corridor above.
+// Dividing walls remain at x=15, x=19 (un-designated).
 #define FORT_BED_X1       13
 #define FORT_BED_Y1       21
-#define FORT_BED_X2       20
+#define FORT_BED_X2       22
 #define FORT_BED_Y2       25
+#define FORT_BED_CORR_Y   23   // east-west bedroom corridor row
 
 // East corridor — connects hall to workshop wing (3×3)
 #define FORT_ECORR_X1     20

@@ -58,7 +58,9 @@ void setup() {
     delay(800);
 
     // Init subsystems
-    mapInit(MAP_SEED);
+    uint32_t seed = MAP_SEED ? MAP_SEED : esp_random();
+    Serial.print("Map seed: "); Serial.println(seed);
+    mapInit(seed);
     tasksInit();
     fortPlanInit();
     animalsInit();

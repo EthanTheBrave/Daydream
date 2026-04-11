@@ -26,6 +26,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #ifdef _WIN32
 #  include <windows.h>
@@ -52,11 +53,12 @@ static void setup() {
     tft.setTextSize(1);
     tft.setTextFont(1);
 
+    uint32_t seed = MAP_SEED ? MAP_SEED : (uint32_t)time(NULL);
     // Splash (just printed to stderr on PC)
     fprintf(stderr, "DWARFORT SIMULATOR — PC Debug Build\n");
-    fprintf(stderr, "Generating world (seed %u)...\n", (unsigned)MAP_SEED);
+    fprintf(stderr, "Generating world (seed %u)...\n", (unsigned)seed);
 
-    mapInit(MAP_SEED);
+    mapInit(seed);
     tasksInit();
     fortPlanInit();
 
@@ -182,7 +184,9 @@ static void printDebug(uint32_t tickInterval) {
 //  Headless fast-forward mode (--headless N)
 // ----------------------------------------------------------------
 static void runHeadless(int maxTicks) {
-    mapInit(MAP_SEED);
+    uint32_t seed = MAP_SEED ? MAP_SEED : (uint32_t)time(NULL);
+    printf("Seed: %u\n", seed); fflush(stdout);
+    mapInit(seed);
     tasksInit();
     fortPlanInit();
     animalsInit();
@@ -230,22 +234,32 @@ static void runHeadless(int maxTicks) {
             // Dump dig task coords when count has been stuck (same as previous sample)
             static int sPrevDig = -1;
             if (dig > 0 && dig == sPrevDig && gTick % 2000 == 0) {
-                // Dig stall diagnostic
-                printf("  [T=%4u] DIG STALL — %d tasks stuck. Tiles around (31-33,14):\n", (unsigned)gTick, dig);
-                for (int dbx = 29; dbx <= 35; dbx++)
-                    printf("    (%d,14): type=%d pass=%d des=%d\n",
-                           dbx, (int)mapGet(dbx,14), (int)mapPassable(dbx,14), (int)mapDesignated(dbx,14));
-                // Print state of dwarf claiming the first stuck dig task
+                printf("  [T=%4u] DIG STALL — %d tasks stuck:\n", (unsigned)gTick, dig);
+                // Print each stuck dig task and its adjacency passability
                 for (int j = 0; j < gTaskCount; j++) {
-                    if (!gTasks[j].done && gTasks[j].type == TASK_DIG && gTasks[j].claimed) {
+                    if (gTasks[j].done || gTasks[j].type != TASK_DIG) continue;
+                    int tx = gTasks[j].x, ty = gTasks[j].y;
+                    printf("    task(%d,%d) claimed=%d  adj: N(%d,%d)=%d E(%d,%d)=%d S(%d,%d)=%d W(%d,%d)=%d\n",
+                           tx, ty, (int)gTasks[j].claimed,
+                           tx,   ty-1, (int)mapPassable(tx,   ty-1),
+                           tx+1, ty,   (int)mapPassable(tx+1, ty  ),
+                           tx,   ty+1, (int)mapPassable(tx,   ty+1),
+                           tx-1, ty,   (int)mapPassable(tx-1, ty  ));
+                    if (gTasks[j].claimed) {
                         int who = gTasks[j].claimedBy;
                         if (who >= 0 && who < gNumDwarves) {
                             const Dwarf& dw = gDwarves[who];
-                            printf("    Claimed by %s (%d,%d) state=%d task=(%d,%d)\n",
-                                   dw.name, dw.x, dw.y, (int)dw.state, gTasks[j].x, gTasks[j].y);
+                            printf("      Claimed by %s at (%d,%d) state=%d\n",
+                                   dw.name, dw.x, dw.y, (int)dw.state);
                         }
-                        break;
                     }
+                }
+                // Print all dwarf positions
+                for (int j = 0; j < gNumDwarves; j++) {
+                    if (gDwarves[j].dead) continue;
+                    printf("    %s (%d,%d) state=%d task=%d\n",
+                           gDwarves[j].name, gDwarves[j].x, gDwarves[j].y,
+                           (int)gDwarves[j].state, gDwarves[j].taskIdx);
                 }
             }
             sPrevDig = dig;
