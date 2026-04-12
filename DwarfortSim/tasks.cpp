@@ -16,8 +16,8 @@ void tasksInit() {
 
 // ----------------------------------------------------------------
 int taskAdd(TaskType type, int x, int y, int destX, int destY) {
-    // Deduplicate: don't add the same dig/chop at the same tile twice
-    if (type == TASK_DIG || type == TASK_CHOP) {
+    // Deduplicate: don't add the same dig/chop/fish at the same tile twice
+    if (type == TASK_DIG || type == TASK_CHOP || type == TASK_FISH) {
         for (int i = 0; i < gTaskCount; i++) {
             if (!gTasks[i].done && gTasks[i].type == type
                 && gTasks[i].x == x && gTasks[i].y == y) {
@@ -54,6 +54,7 @@ int taskAdd(TaskType type, int x, int y, int destX, int destY) {
         case TASK_CRAFT:       gTasks[idx].workNeeded = CRAFT_TICKS;  break;
         case TASK_PLACE_FURN:  gTasks[idx].workNeeded = HAUL_TICKS;   break;
         case TASK_BURY:        gTasks[idx].workNeeded = HAUL_TICKS;   break;
+        case TASK_FISH:        gTasks[idx].workNeeded = FISH_TICKS;   break;
         default:               gTasks[idx].workNeeded = 1;            break;
     }
     return idx;
@@ -72,11 +73,11 @@ void taskUnclaim(int idx) {
 }
 
 // ----------------------------------------------------------------
-// Priority order: structural first, then haul/place, crafting last
+// Priority order: structural first, then haul/place, crafting, fishing last
 static const TaskType kPriority[] = {
-    TASK_DIG, TASK_CHOP, TASK_BURY, TASK_HAUL, TASK_PLACE_FURN, TASK_CRAFT
+    TASK_DIG, TASK_CHOP, TASK_BURY, TASK_HAUL, TASK_PLACE_FURN, TASK_CRAFT, TASK_FISH
 };
-static const int kNumPriority = 6;
+static const int kNumPriority = 7;
 
 int taskFindBest(int cx, int cy) {
     static int8_t tmpX[MAX_PATH_LEN], tmpY[MAX_PATH_LEN];

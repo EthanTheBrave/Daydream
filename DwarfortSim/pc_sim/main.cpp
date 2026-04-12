@@ -192,6 +192,7 @@ static void runHeadless(int maxTicks) {
     animalsInit();
     goblinsInit();
     dwarfInit(NUM_DWARVES, HILL_START_X - 2, MAP_H / 2);
+    fortPlaceCart(HILL_START_X - 2, MAP_H / 2 - 5);
 
     char prevStage[24] = "";
     strncpy(prevStage, gStageName, sizeof(prevStage)-1);

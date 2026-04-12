@@ -151,7 +151,11 @@ void animalsTick() {
                 Animal& a = gAnimals[i];
                 a.active = false;
                 mapMarkDirty(a.x, a.y);
-                gFoodSupply = min(gFoodSupply + SHEEP_MEAT_FOOD, (int)MAX_FOOD_SUPPLY);
+                {
+                    int cap = (mapCountItemGlobal(ITEM_FOOD) + mapCountItemGlobal(ITEM_BARREL))
+                              * BARREL_CAPACITY;
+                    if (cap > 0) gFoodSupply = min(gFoodSupply + SHEEP_MEAT_FOOD, cap);
+                }
                 mapAddItem(a.x, a.y, ITEM_BONE);
                 int bsx, bsy;
                 if (stockpileFindSlot(&bsx, &bsy))

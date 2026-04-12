@@ -110,6 +110,11 @@ uint32_t gDoneTick = 0;
 
 // Track which farms are active (TILE_FARM set)
 static bool gFarmsActive = false;
+// Wagon demolition (one-shot, after wagon area is cleared)
+static bool sWagonDemolished = false;
+// Temple state
+static bool sTempleDug = false;
+static bool sShrineQueued = false;
 
 // ----------------------------------------------------------------
 //  Helpers
@@ -152,6 +157,7 @@ static void workshopCentre(int x1, int y1, int x2, int y2, int* cx, int* cy) {
 void fortPlaceCart(int cartX, int cartY) {
     mapSet(cartX, cartY, TILE_CART);
 
+    // Starting materials: wood + stone (as before)
     static const struct { int dx, dy; ItemType item; } kItems[] = {
         {-1,-1, ITEM_WOOD},  { 0,-1, ITEM_WOOD},  { 1,-1, ITEM_WOOD},
         {-1, 0, ITEM_WOOD},  { 1, 0, ITEM_WOOD},
@@ -162,6 +168,28 @@ void fortPlaceCart(int cartX, int cartY) {
         int iy = cartY + kItems[i].dy;
         if (!mapInBounds(ix, iy) || !mapPassable(ix, iy)) continue;
         mapAddItem(ix, iy, kItems[i].item);
+        int sx, sy;
+        if (stockpileFindSlot(&sx, &sy, kItems[i].item)) taskAdd(TASK_HAUL, ix, iy, sx, sy);
+    }
+
+    // Starting food + drink stored as barrels (8 each = BARREL_CAPACITY * 8 supply units)
+    // plus 2 empty spare barrels. All placed to the WEST of the cart (away from mountain).
+    // gFoodSupply/gDrinkSupply already start at START_FOOD/START_DRINK.
+    static const struct { int dx, dy; ItemType item; } kBarrels[] = {
+        // food barrels — south-west of cart
+        {-3, 2, ITEM_FOOD},  {-2, 2, ITEM_FOOD},  {-1, 2, ITEM_FOOD},  { 0, 2, ITEM_FOOD},
+        {-3, 3, ITEM_FOOD},  {-2, 3, ITEM_FOOD},  {-1, 3, ITEM_FOOD},  { 0, 3, ITEM_FOOD},
+        // drink barrels — north-west of cart
+        {-3,-2, ITEM_DRINK}, {-2,-2, ITEM_DRINK},  {-1,-2, ITEM_DRINK},  { 0,-2, ITEM_DRINK},
+        {-3,-3, ITEM_DRINK}, {-2,-3, ITEM_DRINK},  {-1,-3, ITEM_DRINK},  { 0,-3, ITEM_DRINK},
+        // spare empty barrels — directly west of cart
+        {-1,-1, ITEM_BARREL}, { 0,-1, ITEM_BARREL},
+    };
+    for (int i = 0; i < 18; i++) {
+        int ix = cartX + kBarrels[i].dx;
+        int iy = cartY + kBarrels[i].dy;
+        if (!mapInBounds(ix, iy) || !mapPassable(ix, iy)) continue;
+        mapAddItem(ix, iy, kBarrels[i].item);
         int sx, sy;
         if (stockpileFindSlot(&sx, &sy)) taskAdd(TASK_HAUL, ix, iy, sx, sy);
     }
@@ -545,12 +573,13 @@ static void finaliseWorkshops() {
     // Set barracks room type
     mapSetRoomRect(FORT_BAR_X1, FORT_BAR_Y1, FORT_BAR_X2, FORT_BAR_Y2, ROOM_BARRACKS);
 
-    // Queue barrels at Still
-    int sx = (FORT_WS_STILL_X1+FORT_WS_STILL_X2)/2;
-    int sy = (FORT_WS_STILL_Y1+FORT_WS_STILL_Y2)/2;
-    for (int i = 0; i < 2; i++) {
-        int ti = taskAdd(TASK_CRAFT, sx, sy);
-        if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_BARREL;
+    // Queue initial barrels at woodworker (food/drink storage)
+    {
+        int bwx = woodWkX(), bwy = woodWkY();
+        for (int i = 0; i < 3; i++) {
+            int ti = taskAdd(TASK_CRAFT, bwx, bwy);
+            if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_BARREL;
+        }
     }
 
     // Place door at workshop corridor entrance
@@ -649,6 +678,163 @@ static void manageMigrants() {
 }
 
 // ----------------------------------------------------------------
+//  Barrel sync — keeps physical barrel items aligned with supply levels.
+//  Each ITEM_FOOD = 1 full food barrel (BARREL_CAPACITY units).
+//  Each ITEM_DRINK = 1 full drink barrel.
+//  Each ITEM_BARREL = empty barrel (can be filled by either).
+//  Foraging/production is capped by total available barrel space.
+// ----------------------------------------------------------------
+static void syncBarrels() {
+    int neededFood  = gFoodSupply  / BARREL_CAPACITY;
+    int neededDrink = gDrinkSupply / BARREL_CAPACITY;
+    int haveFood    = mapCountItemGlobal(ITEM_FOOD);
+    int haveDrink   = mapCountItemGlobal(ITEM_DRINK);
+
+    // Convert excess food barrels to empty
+    while (haveFood > neededFood) {
+        if (!mapConsumeFromStockpile(ITEM_FOOD, 1)) break;
+        int sx, sy;
+        if (stockpileFindSlot(&sx, &sy)) mapAddItem(sx, sy, ITEM_BARREL);
+        haveFood--;
+    }
+    // Fill empty barrels with food if needed
+    while (haveFood < neededFood) {
+        if (!mapConsumeFromStockpile(ITEM_BARREL, 1)) break;
+        int sx, sy;
+        if (stockpileFindSlot(&sx, &sy)) mapAddItem(sx, sy, ITEM_FOOD);
+        haveFood++;
+    }
+
+    // Convert excess drink barrels to empty
+    while (haveDrink > neededDrink) {
+        if (!mapConsumeFromStockpile(ITEM_DRINK, 1)) break;
+        int sx, sy;
+        if (stockpileFindSlot(&sx, &sy)) mapAddItem(sx, sy, ITEM_BARREL);
+        haveDrink--;
+    }
+    // Fill empty barrels with drink if needed
+    while (haveDrink < neededDrink) {
+        if (!mapConsumeFromStockpile(ITEM_BARREL, 1)) break;
+        int sx, sy;
+        if (stockpileFindSlot(&sx, &sy)) mapAddItem(sx, sy, ITEM_DRINK);
+        haveDrink++;
+    }
+}
+
+// ----------------------------------------------------------------
+//  Wagon demolition — once the wagon area is cleared of items,
+//  queue a chop task to break it down into wood.
+// ----------------------------------------------------------------
+static void manageWagonDemolition() {
+    if (sWagonDemolished) return;
+    // Find the cart tile
+    int cartX = -1, cartY = -1;
+    for (int y = 0; y < MAP_H && cartX < 0; y++)
+        for (int x = 0; x < HILL_START_X && cartX < 0; x++)
+            if (gMap[y][x].type == TILE_CART) { cartX = x; cartY = y; }
+    if (cartX < 0) { sWagonDemolished = true; return; }
+
+    // Check if area within 4 tiles has no items
+    bool hasItems = false;
+    for (int dy = -4; dy <= 4 && !hasItems; dy++)
+        for (int dx = -4; dx <= 4 && !hasItems; dx++) {
+            int nx = cartX+dx, ny = cartY+dy;
+            if (mapInBounds(nx,ny) && gMap[ny][nx].item != ITEM_NONE) hasItems = true;
+        }
+    if (hasItems) return;
+
+    // Queue chop task on the cart tile
+    if (!taskExistsAt(cartX, cartY, TASK_CHOP)) {
+        mapDesignate(cartX, cartY, true);
+        taskAdd(TASK_CHOP, cartX, cartY);
+        sWagonDemolished = true;  // prevent re-queuing
+        Serial.println("Wagon ready for demolition");
+    }
+}
+
+// ----------------------------------------------------------------
+//  Temple management — dug after workshops complete; shrine crafted once dug
+// ----------------------------------------------------------------
+static void progressTempleDig() {
+    if (!sTempleDug) {
+        // Designate temple room and passage when reachable
+        static const int8_t DX[4] = {1,-1,0,0};
+        static const int8_t DY[4] = {0,0,1,-1};
+        // Room tiles
+        for (int y = FORT_TEMPLE_Y1; y <= FORT_TEMPLE_Y2; y++) {
+            for (int x = FORT_TEMPLE_X1; x <= FORT_TEMPLE_X2; x++) {
+                if (!mapInBounds(x,y) || mapGet(x,y) != TILE_WALL || mapDesignated(x,y)) continue;
+                bool adj = false;
+                for (int d = 0; d < 4 && !adj; d++)
+                    if (mapInBounds(x+DX[d],y+DY[d]) && mapPassable(x+DX[d],y+DY[d])) adj = true;
+                if (adj) { mapDesignate(x,y,true); taskAdd(TASK_DIG,x,y); }
+            }
+        }
+        // Passage tiles
+        for (int y = FORT_TEMPLE_PASS_Y1; y <= FORT_TEMPLE_PASS_Y2; y++) {
+            int x = FORT_TEMPLE_PASS_X;
+            if (!mapInBounds(x,y) || mapGet(x,y) != TILE_WALL || mapDesignated(x,y)) continue;
+            bool adj = false;
+            for (int d = 0; d < 4 && !adj; d++)
+                if (mapInBounds(x+DX[d],y+DY[d]) && mapPassable(x+DX[d],y+DY[d])) adj = true;
+            if (adj) { mapDesignate(x,y,true); taskAdd(TASK_DIG,x,y); }
+        }
+        // Done when all dug
+        if (fortCountRemainingDig(FORT_TEMPLE_X1, FORT_TEMPLE_Y1, FORT_TEMPLE_X2, FORT_TEMPLE_Y2) == 0
+            && fortCountRemainingDig(FORT_TEMPLE_PASS_X, FORT_TEMPLE_PASS_Y1,
+                                     FORT_TEMPLE_PASS_X, FORT_TEMPLE_PASS_Y2) == 0) {
+            mapSetRoomRect(FORT_TEMPLE_X1, FORT_TEMPLE_Y1, FORT_TEMPLE_X2, FORT_TEMPLE_Y2, ROOM_TEMPLE);
+            sTempleDug = true;
+            Serial.println("Temple complete");
+        }
+    }
+
+    // Queue shrine craft + placement once temple is dug
+    if (sTempleDug && !sShrineQueued) {
+        int mx = (FORT_WS_STONE_X1+FORT_WS_STONE_X2)/2;
+        int my = (FORT_WS_STONE_Y1+FORT_WS_STONE_Y2)/2;
+        if (mapPassable(mx, my) && mapCountItemGlobal(ITEM_STONE) >= 2) {
+            int ti = taskAdd(TASK_CRAFT, mx, my);
+            if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_SHRINE;
+            // Place shrine in centre of temple
+            int shrineX = (FORT_TEMPLE_X1+FORT_TEMPLE_X2)/2;
+            int shrineY = (FORT_TEMPLE_Y1+FORT_TEMPLE_Y2)/2;
+            if (!taskExistsPlaceFurn(shrineX, shrineY))
+                queuePlace(ITEM_SHRINE, shrineX, shrineY);
+            sShrineQueued = true;
+        }
+    }
+}
+
+// ----------------------------------------------------------------
+//  Bin management — craft and place bins in stockpile
+// ----------------------------------------------------------------
+static void manageBins() {
+    int wx, wy; getCraftLoc(&wx, &wy);
+    // Count placed bins
+    int placed = mapCountTileInRect(gStockX1, gStockY1, gStockX2, gStockY2, TILE_BIN);
+    int inStock = mapCountItemGlobal(ITEM_BIN);
+    if (placed + inStock < 6 && mapCountItemGlobal(ITEM_WOOD) >= 2
+        && !taskExistsCraft(CRAFT_BIN)) {
+        int ti = taskAdd(TASK_CRAFT, wx, wy);
+        if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_BIN;
+    }
+    // Place any unplaced bins in stockpile
+    if (inStock > 0) {
+        for (int y = gStockY1; y <= gStockY2 && inStock > 0; y++) {
+            for (int x = gStockX1; x <= gStockX2 && inStock > 0; x++) {
+                if (!mapInBounds(x,y)) continue;
+                if (mapGet(x,y) == TILE_FLOOR && gMap[y][x].item == ITEM_NONE
+                    && !taskExistsPlaceFurn(x, y)) {
+                    queuePlace(ITEM_BIN, x, y);
+                    inStock--;
+                }
+            }
+        }
+    }
+}
+
+// ----------------------------------------------------------------
 //  Init
 // ----------------------------------------------------------------
 void fortPlanInit() {
@@ -657,8 +843,11 @@ void fortPlanInit() {
     gDeadUnburied  = 0;
     gTombSlotUsed  = 0;
     gTombDug       = false;
-    gFarmsActive   = false;
-    gFortFallen    = false;
+    gFarmsActive       = false;
+    sWagonDemolished   = false;
+    sTempleDug         = false;
+    sShrineQueued      = false;
+    gFortFallen        = false;
     gFortFallReason[0] = '\0';
     gFortWon   = false;
     gDoneTick  = 0;
@@ -672,16 +861,59 @@ void fortPlanInit() {
 void fortPlanTick() {
     gTick++;
 
-    // Periodic food from surface foraging, drink from stream
-    if (gTick % FORAGE_FOOD_INTERVAL == 0)
-        gFoodSupply = min(gFoodSupply + FORAGE_FOOD_AMOUNT, (int)MAX_FOOD_SUPPLY);
-    if (gTick % COLLECT_DRINK_INTERVAL == 0)
-        gDrinkSupply = min(gDrinkSupply + COLLECT_DRINK_AMOUNT, (int)MAX_DRINK_SUPPLY);
+    // Periodic food from surface foraging, drink from stream (barrel-capped)
+    if (gTick % FORAGE_FOOD_INTERVAL == 0) {
+        int barrelCap = (mapCountItemGlobal(ITEM_FOOD) + mapCountItemGlobal(ITEM_BARREL))
+                        * BARREL_CAPACITY;
+        if (barrelCap > 0)
+            gFoodSupply = min(gFoodSupply + FORAGE_FOOD_AMOUNT, barrelCap);
+    }
+    if (gTick % COLLECT_DRINK_INTERVAL == 0) {
+        int barrelCap = (mapCountItemGlobal(ITEM_DRINK) + mapCountItemGlobal(ITEM_BARREL))
+                        * BARREL_CAPACITY;
+        if (barrelCap > 0)
+            gDrinkSupply = min(gDrinkSupply + COLLECT_DRINK_AMOUNT, barrelCap);
+    }
+
+    // Sync physical barrel items with supply levels (every 5 ticks)
+    // syncBarrels disabled: barrel items are cosmetic storage markers;
+    // supply levels are managed abstractly by foraging/collect intervals.
+
+    // Wagon demolition (once all starting items are hauled away)
+    if (gTick % 20 == 0 && gFortStage >= FS_STOCKPILE) manageWagonDemolition();
 
     manageWoodSupply();
     manageBurials();
     manageMigrants();
     progressTombDig();  // designate reachable tomb tiles each tick
+    if (gFortStage >= FS_DONE) progressTempleDig();
+
+    // Fishing: queue tasks at stream tiles when food reserves are below half
+    if (gFoodSupply < MAX_FOOD_SUPPLY / 2) {
+        int fishCount = 0;
+        for (int i = 0; i < gTaskCount; i++)
+            if (!gTasks[i].done && gTasks[i].type == TASK_FISH) fishCount++;
+        if (fishCount < MAX_CONCURRENT_FISH) {
+            // Find water tiles spread across map height; add up to (limit - current) tasks
+            int needed = MAX_CONCURRENT_FISH - fishCount;
+            int step   = MAP_H / (MAX_CONCURRENT_FISH + 1);
+            for (int slot = 0; slot < MAX_CONCURRENT_FISH && needed > 0; slot++) {
+                int baseY = step * (slot + 1);
+                for (int dy = 0; dy < MAP_H && needed > 0; dy++) {
+                    int wy = (baseY + dy) % MAP_H;
+                    bool found = false;
+                    for (int wx = 0; wx < HILL_START_X && !found; wx++) {
+                        if (mapGet(wx, wy) == TILE_WATER && !taskExistsAt(wx, wy, TASK_FISH)) {
+                            taskAdd(TASK_FISH, wx, wy);
+                            needed--;
+                            found = true;
+                        }
+                    }
+                    if (found) break; // move to next slot
+                }
+            }
+        }
+    }
 
     switch (gFortStage) {
 
@@ -766,30 +998,14 @@ void fortPlanTick() {
         bedLeft += fortCountRemainingDig(sBX1+7, sBCY+1, sBX1+8, sBY2);
         if (bedLeft > 0) break;
         mapSetRoomRect(sBX1, sBY1, sBX2, sBY2, ROOM_BEDROOM);
-        gFortStage = FS_FURNISH_BED;
-        strncpy(gStageName, "Furnishing Beds", sizeof(gStageName)-1);
-        break;
-    }
-
-    case FS_FURNISH_BED: {
-        manageFurnishBed();
-        // Track when this stage started so we can time out gracefully.
-        static uint32_t sFurnishBedStart = 0;
-        if (sFurnishBedStart == 0) sFurnishBedStart = gTick;
-        // Advance when all beds placed, or after 400 ticks (remaining beds placed
-        // later during FS_WORKSHOPS/FS_DONE as wood and crafters become available).
-        bool bedTimeout = (gTick - sFurnishBedStart) >= 400;
-        if (furnishBedComplete() || bedTimeout) {
-            sFurnishBedStart = 0;  // reset for next run
-            gFortStage = FS_E_CORRIDOR;
-            strncpy(gStageName, "E. Corridor", sizeof(gStageName)-1);
-            fortDesignateRect(sEX1, sEY1, sEX2, sEY2);
-        }
+        // Skip furnishing — beds need the woodworker workshop. Dig east corridor next.
+        gFortStage = FS_E_CORRIDOR;
+        strncpy(gStageName, "E. Corridor", sizeof(gStageName)-1);
+        fortDesignateRect(sEX1, sEY1, sEX2, sEY2);
         break;
     }
 
     case FS_E_CORRIDOR:
-        manageFurnishBed();
         if (fortCountRemainingDig(sEX1, sEY1, sEX2, sEY2) > 0) break;
         mapSetRoomRect(sEX1, sEY1, sEX2, sEY2, ROOM_HALL);
         gFortStage = FS_WORKSHOPS;
@@ -798,7 +1014,6 @@ void fortPlanTick() {
         break;
 
     case FS_WORKSHOPS:
-        manageFurnishBed(); // keep trying beds
         progressWorkshopDig(); // open rooms as corridor is dug
         if (workshopTotalRemainingDig() > 0) break;
         finaliseWorkshops();
@@ -812,6 +1027,7 @@ void fortPlanTick() {
         manageFurnishHall();  // hall furniture crafted at woodworker workshop
         manageFarms();
         manageMushProcessing();
+        manageBins();
         // Queue bone broth at kitchen if food low and bones available
         if (gFoodSupply < MAX_FOOD_SUPPLY / 2
             && mapCountItemGlobal(ITEM_BONE) >= 2
@@ -833,21 +1049,25 @@ void fortPlanTick() {
                 if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_STONE_MUG;
             }
         }
-        // Keep crafting barrels if wood available
-        if (mapCountItemGlobal(ITEM_WOOD) > CRAFT_WOOD_BARREL * 2
+        // Keep crafting barrels at woodworker if wood available (for food/drink storage)
+        if (mapCountItemGlobal(ITEM_WOOD) > CRAFT_WOOD_BARREL * 3
             && !taskExistsCraft(CRAFT_BARREL)) {
-            int sx = (FORT_WS_STILL_X1+FORT_WS_STILL_X2)/2;
-            int sy = (FORT_WS_STILL_Y1+FORT_WS_STILL_Y2)/2;
-            int ti = taskAdd(TASK_CRAFT, sx, sy);
-            if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_BARREL;
+            int wx2 = woodWkX(), wy2 = woodWkY();
+            if (mapPassable(wx2, wy2)) {
+                int ti = taskAdd(TASK_CRAFT, wx2, wy2);
+                if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_BARREL;
+            }
         }
-        // Season tracking and win condition
+        // Season tracking and win condition.
+        // Victory requires SEASONS_TO_WIN total seasons from embark (not just post-completion),
+        // so a slow build still wins once total game time crosses the threshold.
         {
             static const char* kSeasons[] = {"Spring","Summer","Autumn","Winter"};
-            uint32_t elapsed = gTick - gDoneTick;
-            uint8_t  season  = (uint8_t)(elapsed / TICKS_PER_SEASON);
-            if (season < SEASONS_TO_WIN) {
-                strncpy(gStageName, kSeasons[season], sizeof(gStageName)-1);
+            uint32_t totalSeasons = gTick / TICKS_PER_SEASON;
+            if (totalSeasons < (uint32_t)SEASONS_TO_WIN) {
+                // Show season name cycling from the post-completion tick
+                uint32_t postSeason = (gTick - gDoneTick) / TICKS_PER_SEASON;
+                strncpy(gStageName, kSeasons[postSeason % 4], sizeof(gStageName)-1);
             } else {
                 gFortWon = true;
             }

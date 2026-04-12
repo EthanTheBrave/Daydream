@@ -73,11 +73,11 @@
 // Periodic additions to food and drink supply, simulating dwarves
 // hunting/foraging and collecting water off-screen.
 #define FORAGE_FOOD_INTERVAL  15   // ticks between food top-ups
-#define FORAGE_FOOD_AMOUNT     8   // food added per top-up
+#define FORAGE_FOOD_AMOUNT    15   // food added per top-up
 #define COLLECT_DRINK_INTERVAL 10  // ticks between drink top-ups
 #define COLLECT_DRINK_AMOUNT  10   // drink added per top-up
-#define MAX_FOOD_SUPPLY      100   // supply cap
-#define MAX_DRINK_SUPPLY     100
+#define MAX_FOOD_SUPPLY      200   // supply cap
+#define MAX_DRINK_SUPPLY     200
 
 // --- Wood supply (surface trees) -----------------------------------
 #define LOW_WOOD_THRESHOLD     4   // designate trees when wood < this
@@ -101,7 +101,7 @@
 
 // --- Win condition -------------------------------------------------
 #define TICKS_PER_SEASON  1000   // ticks per in-game season (Spring/Summer/Autumn/Winter)
-#define SEASONS_TO_WIN       4   // survive this many seasons after fort completion to win
+#define SEASONS_TO_WIN      40   // survive this many seasons after fort completion to win
 
 // --- Combat / Barracks (4×4 room at end of workshop wing) ----------
 #define FORT_BAR_X1  44
@@ -112,6 +112,31 @@
 #define COMBAT_TRAIN_INTERVAL   3    // ticks between +1 skill while training
 #define COMBAT_TRAIN_DURATION  40    // ticks per barracks training session
 #define COMBAT_SKILL_MAX       80    // max combat skill
+
+// --- Barrel & bin storage ------------------------------------------
+#define BARREL_CAPACITY       10   // food/drink units per barrel
+#define BIN_CAPACITY           5   // items per storage bin
+
+// --- Temple --------------------------------------------------------
+// Small 3×3 prayer room east of barracks, connected via short passage
+#define FORT_TEMPLE_X1        48
+#define FORT_TEMPLE_Y1         7
+#define FORT_TEMPLE_X2        50
+#define FORT_TEMPLE_Y2         9
+// Passage: single column at x=49 from temple south wall (y=10) to corridor (y=13)
+#define FORT_TEMPLE_PASS_X    49
+#define FORT_TEMPLE_PASS_Y1   10
+#define FORT_TEMPLE_PASS_Y2   13
+
+// --- Prayer --------------------------------------------------------
+#define PRAYER_TICKS          30   // ticks per prayer session at shrine
+#define MAX_HAPPINESS         40   // max happiness value
+#define HAPPINESS_DECAY       80   // ticks between happiness -1
+
+// --- Fishing -------------------------------------------------------
+#define FISH_TICKS            15   // ticks per fishing attempt
+#define FISH_FOOD_AMOUNT       2   // food supply added per catch
+#define MAX_CONCURRENT_FISH    3   // max simultaneous fish tasks active at once
 
 // --- Animals -------------------------------------------------------
 #define SHEEP_HARVEST_INTERVAL 700  // ticks between sheep harvests (600 = spawn interval)

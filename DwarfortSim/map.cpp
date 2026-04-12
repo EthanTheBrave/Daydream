@@ -96,7 +96,8 @@ bool mapPassable(int x, int y) {
     TileType t = gMap[y][x].type;
     return t == TILE_FLOOR  || t == TILE_GRASS  || t == TILE_DOOR
         || t == TILE_RAMP   || t == TILE_STAIR  || t == TILE_WATER
-        || t == TILE_SHRUB  || t == TILE_FLOWER || t == TILE_FARM;
+        || t == TILE_SHRUB  || t == TILE_FLOWER || t == TILE_FARM
+        || t == TILE_SHRINE || t == TILE_BIN;
 }
 
 bool mapPassableOrTarget(int x, int y) {
@@ -202,19 +203,38 @@ void mapClearAllDirty() {
 // ----------------------------------------------------------------
 //  Stockpile helpers
 // ----------------------------------------------------------------
-bool stockpileFindSlot(int* ox, int* oy) {
+bool stockpileFindSlot(int* ox, int* oy, ItemType forItem) {
+    // Phase 1: prefer a TILE_BIN slot that already holds the same item type
+    if (forItem != ITEM_NONE) {
+        for (int y = gStockY1; y <= gStockY2; y++) {
+            for (int x = gStockX1; x <= gStockX2; x++) {
+                if (!mapInBounds(x, y)) continue;
+                if (gMap[y][x].type != TILE_BIN) continue;
+                // Bin must hold same item (or be empty) and not full
+                if (gMap[y][x].item != ITEM_NONE && gMap[y][x].item != forItem) continue;
+                if (gMap[y][x].itemCount >= BIN_CAPACITY) continue;
+                bool reserved = false;
+                for (int i = 0; i < gTaskCount && !reserved; i++) {
+                    if (gTasks[i].done) continue;
+                    if ((gTasks[i].type == TASK_HAUL || gTasks[i].type == TASK_PLACE_FURN)
+                        && gTasks[i].destX == x && gTasks[i].destY == y)
+                        reserved = true;
+                }
+                if (!reserved) { *ox = x; *oy = y; return true; }
+            }
+        }
+    }
+    // Phase 2: find any empty passable tile in the stockpile zone
     for (int y = gStockY1; y <= gStockY2; y++) {
         for (int x = gStockX1; x <= gStockX2; x++) {
             if (!mapInBounds(x, y)) continue;
             if (!mapPassable(x, y) || gMap[y][x].item != ITEM_NONE) continue;
-            // Skip slots already targeted by an active haul/place task
             bool reserved = false;
-            for (int i = 0; i < gTaskCount; i++) {
+            for (int i = 0; i < gTaskCount && !reserved; i++) {
                 if (gTasks[i].done) continue;
                 if ((gTasks[i].type == TASK_HAUL || gTasks[i].type == TASK_PLACE_FURN)
-                    && gTasks[i].destX == x && gTasks[i].destY == y) {
-                    reserved = true; break;
-                }
+                    && gTasks[i].destX == x && gTasks[i].destY == y)
+                    reserved = true;
             }
             if (!reserved) { *ox = x; *oy = y; return true; }
         }

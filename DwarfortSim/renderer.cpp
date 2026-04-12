@@ -43,6 +43,7 @@ extern TFT_eSPI tft;
 #define BG_FARM      0x0200  // dim green (soil)
 #define BG_TOMB      0x1010  // dim purple
 #define BG_BARRACKS  0x0421  // dim teal — training area
+#define BG_TEMPLE    0x3010  // dim gold — holy ground
 
 // ----------------------------------------------------------------
 //  Per-cell display cache
@@ -76,6 +77,7 @@ static uint16_t roomBg(RoomType r) {
         case ROOM_FARM:      return BG_FARM;
         case ROOM_TOMB:      return BG_TOMB;
         case ROOM_BARRACKS:  return BG_BARRACKS;
+        case ROOM_TEMPLE:    return BG_TEMPLE;
         default:             return C_BLACK;
     }
 }
@@ -129,6 +131,8 @@ static void tileVisual(int x, int y, char* ch, uint16_t* fg, uint16_t* bg) {
             case ITEM_MUSHROOM: *ch = 'm'; *fg = C_PURPLE;     return;
             case ITEM_BEER:     *ch = 'U'; *fg = C_CYAN;       return;
             case ITEM_BONE:     *ch = 'b'; *fg = C_WHITE;      return;
+            case ITEM_BIN:      *ch = 'B'; *fg = C_BROWN;      return;
+            case ITEM_SHRINE:   *ch = '\x0F'; *fg = C_YELLOW;  return;  // sun glyph (CP437 ☼)
             default: break;
         }
     }
@@ -197,6 +201,25 @@ static void tileVisual(int x, int y, char* ch, uint16_t* fg, uint16_t* bg) {
 
         case TILE_FARM:
             *ch = ':'; *fg = C_DARK_BROWN; *bg = BG_FARM;     break;
+
+        case TILE_SHRINE:
+            *ch = '\x0F'; *fg = C_YELLOW; *bg = BG_TEMPLE;    break;  // ☼ shrine
+
+        case TILE_BIN:
+            *bg = roomBg(t.roomType);
+            if (t.item != ITEM_NONE) {
+                // Show contained item when bin has contents
+                switch (t.item) {
+                    case ITEM_STONE:    *ch = '*'; *fg = C_ORANGE; break;
+                    case ITEM_WOOD:     *ch = '/'; *fg = C_BROWN;  break;
+                    case ITEM_BONE:     *ch = 'b'; *fg = C_WHITE;  break;
+                    case ITEM_MUSHROOM: *ch = 'm'; *fg = C_PURPLE; break;
+                    default:            *ch = 'B'; *fg = C_BROWN;  break;
+                }
+            } else {
+                *ch = 'B'; *fg = C_TAN;   // empty bin
+            }
+            break;
 
         default:
             *ch = ' '; *fg = C_BLACK;      *bg = C_BLACK;     break;

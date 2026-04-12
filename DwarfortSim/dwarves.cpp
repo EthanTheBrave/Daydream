@@ -107,7 +107,27 @@ static void dwarfMove(int idx) {
         if (d.taskIdx >= 0) { taskUnclaim(d.taskIdx); d.taskIdx = -1; }
         return;
     }
-    if (dwarfAt(nx, ny, idx)) return; // blocked — wait this tick
+    if (dwarfAt(nx, ny, idx)) {
+        // If blocker is sleeping, wake them so they move — breaks access deadlocks
+        for (int j = 0; j < gNumDwarves; j++) {
+            if (j == idx) continue;
+            if (gDwarves[j].active && gDwarves[j].x == nx && gDwarves[j].y == ny
+                    && gDwarves[j].state == DS_SLEEPING) {
+                gDwarves[j].state   = DS_IDLE;
+                gDwarves[j].workLeft = 0;
+                break;
+            }
+        }
+        // Blocked by another dwarf; unclaim after 20 consecutive blocked ticks
+        if (++d.blockedCount >= 20) {
+            d.blockedCount = 0;
+            if (d.taskIdx >= 0) { taskUnclaim(d.taskIdx); d.taskIdx = -1; }
+            d.pathLen = 0; d.pathPos = 0;
+            d.state = DS_IDLE;
+        }
+        return;
+    }
+    d.blockedCount = 0;
 
     mapMarkDirty(d.x, d.y);
     d.lastX = d.x; d.lastY = d.y;
@@ -139,8 +159,12 @@ static void tickDwarf(int idx) {
     if (d.hunger  >= 100) d.starveCount++;  else d.starveCount = 0;
     if (d.thirst  >= 100) d.dehydCount++;   else d.dehydCount  = 0;
 
-    // ---- Death check ----
-    if (d.starveCount >= STARVE_TICKS || d.dehydCount >= DEHYDRATE_TICKS) {
+    // ---- Happiness decay ----
+    if (d.happiness > 0 && gTick % HAPPINESS_DECAY == 0) d.happiness--;
+
+    // ---- Death check (happiness adds up to +3 tolerance) ----
+    int happyBonus = d.happiness / (MAX_HAPPINESS / 3);  // 0, 1, 2, or 3
+    if (d.starveCount >= STARVE_TICKS + happyBonus || d.dehydCount >= DEHYDRATE_TICKS + happyBonus) {
         const char* cause = (d.dehydCount >= DEHYDRATE_TICKS) ? "dehydration" : "starvation";
         printf("T=%u  %s died of %s  (H:%d T:%d F:%d  supply food=%d drink=%d)\n",
             (unsigned)gTick, d.name, cause,
@@ -295,25 +319,64 @@ static void tickDwarf(int idx) {
             d.pathLen = (uint8_t)plen;
             d.pathPos = 0;
             d.state   = startFetch ? DS_FETCHING : DS_MOVING;
+            // Movement timeout: 2× path length, min 40, max 200 ticks
+            if (!startFetch)
+                d.workLeft = (uint8_t)min(max(plen * 2, 40), 200);
             break;
         }
 
-        // No work — wander
+        // No work — try to pray at shrine when very idle (20% chance per 8-tick burst)
+        if (d.idleTicks >= 8 && random(0, 5) == 0) {
+            for (int py = 0; py < MAP_H; py++) {
+                for (int px = 0; px < MAP_W; px++) {
+                    if (gMap[py][px].type != TILE_SHRINE || !mapIsRevealed(px, py)) continue;
+                    int plen = pathFind(d.x, d.y, px, py, d.pathX, d.pathY, MAX_PATH_LEN);
+                    if (plen > 0) {
+                        d.pathLen  = (uint8_t)plen;
+                        d.pathPos  = 0;
+                        d.workLeft = PRAYER_TICKS;
+                        d.state    = DS_PRAYING;
+                        d.idleTicks = 0;
+                        goto doneIdleChoice;
+                    }
+                }
+            }
+        }
+
+        // No work — wander; bias toward hall tiles when the hall exists
         if (d.idleTicks >= 4) {
             d.idleTicks = 0;
+            bool tryHall = (gFortStage >= FS_N_CORRIDOR && random(0, 10) < 7);
             int bestX = -1, bestY = -1, bestDist = 0;
-            for (int attempt = 0; attempt < 20; attempt++) {
-                int wx = random(0, MAP_W), wy = random(0, MAP_H);
-                if (!mapPassable(wx,wy) || !mapIsRevealed(wx,wy)) continue;
-                if (wx == d.x && wy == d.y) continue;
-                int dist = abs(wx-d.x)+abs(wy-d.y);
-                if (dist > bestDist) { bestDist=dist; bestX=wx; bestY=wy; }
+
+            if (tryHall) {
+                // Pick a random ROOM_HALL tile to socialize in
+                for (int attempt = 0; attempt < 25; attempt++) {
+                    int wx = random(0, MAP_W), wy = random(0, MAP_H);
+                    if (!mapPassable(wx,wy) || !mapIsRevealed(wx,wy)) continue;
+                    if (wx == d.x && wy == d.y) continue;
+                    if (gMap[wy][wx].roomType != ROOM_HALL) continue;
+                    bestX = wx; bestY = wy; break;
+                }
             }
+
+            // Fallback: any passable tile, prefer distant ones
+            if (bestX < 0) {
+                for (int attempt = 0; attempt < 20; attempt++) {
+                    int wx = random(0, MAP_W), wy = random(0, MAP_H);
+                    if (!mapPassable(wx,wy) || !mapIsRevealed(wx,wy)) continue;
+                    if (wx == d.x && wy == d.y) continue;
+                    int dist = abs(wx-d.x)+abs(wy-d.y);
+                    if (dist > bestDist) { bestDist=dist; bestX=wx; bestY=wy; }
+                }
+            }
+
             if (bestX >= 0) {
                 int plen = pathFind(d.x, d.y, bestX, bestY, d.pathX, d.pathY, MAX_PATH_LEN);
                 if (plen > 0) { d.pathLen=(uint8_t)plen; d.pathPos=0; d.state=DS_WANDER; }
             }
         }
+        doneIdleChoice:;
         break;
     }
 
@@ -338,8 +401,9 @@ static void tickDwarf(int idx) {
         if (ix >= 0 && mapRemoveItem(ix, iy, need)) {
             d.carrying = need;
             int plen = pathFind(d.x, d.y, ft.x, ft.y, d.pathX, d.pathY, MAX_PATH_LEN);
-            d.pathLen = (uint8_t)plen; d.pathPos = 0;
-            d.state   = DS_MOVING;
+            d.pathLen  = (uint8_t)plen; d.pathPos = 0;
+            d.workLeft = (uint8_t)min(max(plen * 2, 40), 200);
+            d.state    = DS_MOVING;
         } else {
             taskUnclaim(d.taskIdx); d.taskIdx=-1; d.state=DS_IDLE;
         }
@@ -366,6 +430,26 @@ static void tickDwarf(int idx) {
         break;
     }
 
+    // ---- PRAYING (walking to shrine, then meditating) ----
+    case DS_PRAYING: {
+        // Urgent dig interrupts prayer
+        int urgPray = taskFindBest(d.x, d.y);
+        if (urgPray >= 0 && gTasks[urgPray].type == TASK_DIG) {
+            d.pathLen = 0; d.state = DS_IDLE; break;
+        }
+        // Still walking to shrine
+        if (d.pathPos < d.pathLen) { dwarfMove(idx); break; }
+        // At destination — pray
+        if (d.workLeft > 0) {
+            d.workLeft--;
+            if (d.happiness < MAX_HAPPINESS) d.happiness++;
+            if (d.fatigue > 5) d.fatigue = (uint8_t)(d.fatigue - 1);  // meditation eases fatigue
+            break;
+        }
+        d.state = DS_IDLE;
+        break;
+    }
+
     // ---- WANDER ----
     case DS_WANDER: {
         if (taskFindBest(d.x, d.y) >= 0) {
@@ -385,6 +469,14 @@ static void tickDwarf(int idx) {
             d.workLeft = gTasks[d.taskIdx].workNeeded;
             break;
         }
+        // Movement timeout: if we've spent too long travelling, release the task
+        // so a closer dwarf can claim it. workLeft counts down from pathLen*2.
+        if (d.workLeft == 0) {
+            taskUnclaim(d.taskIdx); d.taskIdx = -1;
+            d.pathLen = 0; d.state = DS_IDLE;
+            break;
+        }
+        if (d.workLeft > 0) d.workLeft--;
         dwarfMove(idx);
         break;
     }
@@ -407,12 +499,15 @@ static void tickDwarf(int idx) {
                 if (stockpileFindSlot(&sx, &sy)) taskAdd(TASK_HAUL, t.x, t.y, sx, sy);
             }
 
-        // --- CHOP ---
+        // --- CHOP (also handles wagon demolition) ---
         } else if (t.type == TASK_CHOP) {
+            bool isWagon = (mapGet(t.x, t.y) == TILE_CART);
             mapSet(t.x, t.y, TILE_GRASS);
-            mapAddItem(t.x, t.y, ITEM_WOOD);
+            int woodAmt = isWagon ? (3 + random(0, 3)) : 1;  // wagon → 3–5 wood
+            for (int wi = 0; wi < woodAmt; wi++) mapAddItem(t.x, t.y, ITEM_WOOD);
             int sx, sy;
-            if (stockpileFindSlot(&sx, &sy)) taskAdd(TASK_HAUL, t.x, t.y, sx, sy);
+            if (stockpileFindSlot(&sx, &sy, ITEM_WOOD)) taskAdd(TASK_HAUL, t.x, t.y, sx, sy);
+            if (isWagon) Serial.println("Wagon demolished for wood");
 
         // --- HAUL (phase 1: pick up) ---
         } else if (t.type == TASK_HAUL) {
@@ -441,10 +536,15 @@ static void tickDwarf(int idx) {
                 if (!mapConsumeFromStockpile(ITEM_MUSHROOM, mushCost)) {
                     taskUnclaim(d.taskIdx); d.taskIdx=-1; d.state=DS_IDLE; break;
                 }
-                if (ct == CRAFT_MUSHROOM_FOOD)
-                    gFoodSupply = min(gFoodSupply + 3, (int)MAX_FOOD_SUPPLY);
-                else
-                    gDrinkSupply = min(gDrinkSupply + 3, (int)MAX_DRINK_SUPPLY);
+                if (ct == CRAFT_MUSHROOM_FOOD) {
+                    int cap = (mapCountItemGlobal(ITEM_FOOD) + mapCountItemGlobal(ITEM_BARREL))
+                              * BARREL_CAPACITY;
+                    if (cap > 0) gFoodSupply = min(gFoodSupply + 3, cap);
+                } else {
+                    int cap = (mapCountItemGlobal(ITEM_DRINK) + mapCountItemGlobal(ITEM_BARREL))
+                              * BARREL_CAPACITY;
+                    if (cap > 0) gDrinkSupply = min(gDrinkSupply + 3, cap);
+                }
             } else {
                 // Dwarf physically carried the primary material (in d.carrying)
                 if (d.carrying == ITEM_NONE) {
@@ -497,6 +597,15 @@ static void tickDwarf(int idx) {
                 break;
             }
             taskUnclaim(d.taskIdx); d.taskIdx=-1; d.state=DS_IDLE; break;
+
+        // --- FISH ---
+        } else if (t.type == TASK_FISH) {
+            if (random(0, 2) == 0) {  // 50% catch chance
+                int barrelCap = (mapCountItemGlobal(ITEM_FOOD) + mapCountItemGlobal(ITEM_BARREL))
+                                * BARREL_CAPACITY;
+                if (barrelCap > 0)
+                    gFoodSupply = min(gFoodSupply + FISH_FOOD_AMOUNT, barrelCap);
+            }
 
         // --- BURY (phase 1: pick up corpse) ---
         } else if (t.type == TASK_BURY) {

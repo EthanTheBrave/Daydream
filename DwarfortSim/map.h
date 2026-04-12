@@ -29,8 +29,9 @@ void     mapClearAllDirty();
 
 // Stockpile zone (set by fort planner)
 extern int gStockX1, gStockY1, gStockX2, gStockY2;
-// Find an empty floor tile inside the stockpile zone; returns true on success
-bool     stockpileFindSlot(int* ox, int* oy);
+// Find a slot in the stockpile zone for the given item type.
+// Prefers TILE_BIN slots with matching items (up to BIN_CAPACITY), then empty floor.
+bool     stockpileFindSlot(int* ox, int* oy, ItemType forItem = ITEM_NONE);
 
 // Room type marking
 void     mapSetRoom(int x, int y, RoomType r);
