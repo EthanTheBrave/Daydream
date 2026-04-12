@@ -80,8 +80,7 @@ static void consoleInit() {
     DWORD mode = 0;
     GetConsoleMode(hOut, &mode);
     SetConsoleMode(hOut, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
-    // CP437 so that \x01 renders as ☺
-    SetConsoleOutputCP(437);
+    SetConsoleOutputCP(65001);  // UTF-8 — needed for Unicode glyph output
     // Hide cursor
     CONSOLE_CURSOR_INFO ci = {1, FALSE};
     SetConsoleCursorInfo(hOut, &ci);
@@ -305,7 +304,7 @@ int main(int argc, char** argv) {
     consoleInit();
 
     setup();
-    tft.flush(MAP_W, MAP_H);
+    tft.flush(MAP_W, MAP_H + 2);
 
     uint32_t tickInterval = SIM_TICK_MS;
     uint32_t lastTick     = millis();
@@ -331,13 +330,18 @@ int main(int argc, char** argv) {
 
             if (gFortFallen) {
                 renderFailure(gFortFallReason);
-                tft.flush(MAP_W, MAP_H);
+                tft.flush(MAP_W, MAP_H + 2);
+                // Move cursor below map and wait — without this the window
+                // closes instantly and the player never sees what happened.
+                printf("\033[%d;1H\033[0m  Press any key to exit.\n", MAP_H + 4);
+                fflush(stdout);
+                while (!keyCheck()) delay(50);
                 break;
             }
 
             renderFrame();
 
-            tft.flush(MAP_W, MAP_H);
+            tft.flush(MAP_W, MAP_H + 2);
             printDebug(tickInterval);
         }
 

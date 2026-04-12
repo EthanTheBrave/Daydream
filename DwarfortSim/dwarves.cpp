@@ -182,6 +182,7 @@ static void tickDwarf(int idx) {
             snprintf(buf, sizeof(buf), "%s has died of %s.", d.name, cause);
             tickerPush(buf);
         }
+        mapAddBlood(d.x, d.y);
         d.state = DS_DEAD;
         d.dead  = true;
         d.active = false;
@@ -548,15 +549,10 @@ static void tickDwarf(int idx) {
                 if (!mapConsumeFromStockpile(ITEM_MUSHROOM, mushCost)) {
                     taskUnclaim(d.taskIdx); d.taskIdx=-1; d.state=DS_IDLE; break;
                 }
-                if (ct == CRAFT_MUSHROOM_FOOD) {
-                    int cap = (mapCountItemGlobal(ITEM_FOOD) + mapCountItemGlobal(ITEM_BARREL))
-                              * BARREL_CAPACITY;
-                    if (cap > 0) gFoodSupply = min(gFoodSupply + 3, cap);
-                } else {
-                    int cap = (mapCountItemGlobal(ITEM_DRINK) + mapCountItemGlobal(ITEM_BARREL))
-                              * BARREL_CAPACITY;
-                    if (cap > 0) gDrinkSupply = min(gDrinkSupply + 3, cap);
-                }
+                if (ct == CRAFT_MUSHROOM_FOOD)
+                    gFoodSupply  = min(gFoodSupply  + 3, MAX_FOOD_SUPPLY);
+                else
+                    gDrinkSupply = min(gDrinkSupply + 3, MAX_DRINK_SUPPLY);
             } else {
                 // Dwarf physically carried the primary material (in d.carrying)
                 if (d.carrying == ITEM_NONE) {
@@ -612,12 +608,8 @@ static void tickDwarf(int idx) {
 
         // --- FISH ---
         } else if (t.type == TASK_FISH) {
-            if (random(0, 2) == 0) {  // 50% catch chance
-                int barrelCap = (mapCountItemGlobal(ITEM_FOOD) + mapCountItemGlobal(ITEM_BARREL))
-                                * BARREL_CAPACITY;
-                if (barrelCap > 0)
-                    gFoodSupply = min(gFoodSupply + FISH_FOOD_AMOUNT, barrelCap);
-            }
+            if (random(0, 2) == 0)  // 50% catch chance
+                gFoodSupply = min(gFoodSupply + FISH_FOOD_AMOUNT, MAX_FOOD_SUPPLY);
 
         // --- BURY (phase 1: pick up corpse) ---
         } else if (t.type == TASK_BURY) {

@@ -67,7 +67,7 @@ enum ItemType : uint8_t {
 };
 
 // ----------------------------------------------------------------
-//  Map tile (6 bytes)
+//  Map tile (7 bytes)
 // ----------------------------------------------------------------
 struct Tile {
     TileType type;
@@ -76,6 +76,7 @@ struct Tile {
     uint8_t  itemCount;
     RoomType roomType;
     bool     revealed;
+    uint8_t  blood;      // >0: blood on tile, counts down to 0 (fades)
 };
 
 // ----------------------------------------------------------------

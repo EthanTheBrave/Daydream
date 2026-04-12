@@ -19,8 +19,8 @@
                                  // (surface grass to the left)
 
 // --- Starting supplies (placed as items on the surface) ------------
-#define START_FOOD        80     // Food units at embark
-#define START_DRINK       80     // Drink units at embark
+#define START_FOOD       120     // Food units at embark
+#define START_DRINK      120     // Drink units at embark
 
 // --- Dwarf needs ---------------------------------------------------
 #define HUNGER_RATE        1     // Hunger added per tick
@@ -125,8 +125,9 @@
 #define FORT_TEMPLE_Y1         7
 #define FORT_TEMPLE_X2        50
 #define FORT_TEMPLE_Y2         9
-// Passage: single column at x=49 from temple south wall (y=10) to corridor (y=13)
+// Passage: 2-wide column (x=49-50) from corridor (y=13) to temple (y=10)
 #define FORT_TEMPLE_PASS_X    49
+#define FORT_TEMPLE_PASS_X2   50
 #define FORT_TEMPLE_PASS_Y1   10
 #define FORT_TEMPLE_PASS_Y2   13
 
@@ -158,6 +159,10 @@
 #define MIGRANT_START_TICK     400   // first wave not before this tick
 #define MIGRANT_POP_CAP         20   // hard cap on total dwarves
 
+// --- Blood ---------------------------------------------------------
+#define BLOOD_FADE_TICKS    200   // blood starts at this value and counts down
+#define BLOOD_DECAY_INTERVAL  3   // ticks between each -1 decay step (~600 ticks total)
+
 // --- Entity limits -------------------------------------------------
 #define MAX_DWARVES       24     // Must be >= MIGRANT_POP_CAP + NUM_DWARVES
 #define MAX_TASKS        300
@@ -167,9 +172,9 @@
 // MAP is 53 wide x 29 tall. Hill starts at x=10. Vertical centre: y=14
 // Surface: x=0..9    Mountain: x=10..52
 
-// Entrance tunnel (3×3)
+// Entrance tunnel (3×2 narrow passage — two rows so dwarves can pass)
 #define FORT_ENTRANCE_X1  10
-#define FORT_ENTRANCE_Y1  12
+#define FORT_ENTRANCE_Y1  13
 #define FORT_ENTRANCE_X2  12
 #define FORT_ENTRANCE_Y2  14
 
@@ -207,15 +212,17 @@
 #define FORT_BED_Y2       25
 #define FORT_BED_CORR_Y   23   // east-west bedroom corridor row
 
-// East corridor — connects hall to workshop wing (3×3)
+// East antechamber — wide junction room before workshop wing.
+// Height matches the main hall (set dynamically in computeLayout).
+// Provides space for future side rooms to branch north/south.
 #define FORT_ECORR_X1     20
-#define FORT_ECORR_Y1     12
-#define FORT_ECORR_X2     22
-#define FORT_ECORR_Y2     14
+#define FORT_ECORR_Y1     12   // fallback only — overridden by sHY1/sHY2
+#define FORT_ECORR_X2     26
+#define FORT_ECORR_Y2     14   // fallback only — overridden by sHY1/sHY2
 
-// Workshop main corridor — single-tile-wide E-W passage at y=14
+// Workshop main corridor — 2-tile-wide E-W spine at y=13-14
 #define FORT_WCORR_X1     23
-#define FORT_WCORR_Y1     14
+#define FORT_WCORR_Y1     13
 #define FORT_WCORR_X2     52
 #define FORT_WCORR_Y2     14
 

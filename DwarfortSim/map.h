@@ -49,3 +49,7 @@ int      mapCountTileInRect(int x1, int y1, int x2, int y2, TileType t);
 bool     mapIsRevealed(int x, int y);
 void     mapReveal(int x, int y);        // reveal one tile
 void     mapRevealAdjacent(int x, int y); // reveal tile + 4 neighbours
+
+// Blood
+void     mapAddBlood(int x, int y);   // splatter blood on a tile
+void     mapDecayBlood();             // call once per BLOOD_DECAY_INTERVAL ticks

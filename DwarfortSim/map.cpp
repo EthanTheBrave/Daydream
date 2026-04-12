@@ -15,7 +15,7 @@ void mapInit(uint32_t seed) {
     // Fill everything as solid wall, unrevealed
     for (int y = 0; y < MAP_H; y++) {
         for (int x = 0; x < MAP_W; x++) {
-            gMap[y][x] = { TILE_WALL, false, ITEM_NONE, 0, ROOM_NONE, false };
+            gMap[y][x] = { TILE_WALL, false, ITEM_NONE, 0, ROOM_NONE, false, 0 };
             gDirty[y][x] = true;
         }
     }
@@ -320,4 +320,24 @@ void mapSetRoomRect(int x1, int y1, int x2, int y2, RoomType r) {
     for (int y = y1; y <= y2; y++)
         for (int x = x1; x <= x2; x++)
             mapSetRoom(x, y, r);
+}
+
+// ----------------------------------------------------------------
+//  Blood
+// ----------------------------------------------------------------
+void mapAddBlood(int x, int y) {
+    if (!mapInBounds(x, y)) return;
+    gMap[y][x].blood = BLOOD_FADE_TICKS;
+    gDirty[y][x] = true;
+}
+
+void mapDecayBlood() {
+    for (int y = 0; y < MAP_H; y++) {
+        for (int x = 0; x < MAP_W; x++) {
+            if (gMap[y][x].blood > 0) {
+                gMap[y][x].blood--;
+                gDirty[y][x] = true;
+            }
+        }
+    }
 }

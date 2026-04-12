@@ -40,6 +40,10 @@ extern TFT_eSPI tft;
 #define C_SNOW_BG    0x2104   // same as C_DARK_GRAY — frozen ground shadow
 #define C_AUTUMN_LEF 0xFD20   // C_ORANGE — autumn foliage / shrubs
 
+// Blood
+#define C_BLOOD_FRESH 0x8000  // bright dark-red  (blood > half of BLOOD_FADE_TICKS)
+#define C_BLOOD_DRY   0x4000  // dark maroon      (blood <= half, drying)
+
 // Room background tints (very dark, just a hint of colour)
 #define BG_HALL      0x0821  // dim blue-grey
 #define BG_STOCKPILE 0x1800  // dim red-brown
@@ -246,6 +250,12 @@ static void tileVisual(int x, int y, char* ch, uint16_t* fg, uint16_t* bg) {
 
         default:
             *ch = ' '; *fg = C_BLACK;      *bg = C_BLACK;     break;
+    }
+
+    // Blood overlay: tint background red on tiles with spilled blood.
+    // Walls don't show blood (no visible floor surface).
+    if (t.blood > 0 && t.type != TILE_WALL) {
+        *bg = (t.blood > BLOOD_FADE_TICKS / 2) ? C_BLOOD_FRESH : C_BLOOD_DRY;
     }
 }
 

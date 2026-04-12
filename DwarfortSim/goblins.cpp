@@ -64,10 +64,9 @@ static void spawnGoblinWave(int count) {
         mapMarkDirty(x, y);
 
         Serial.println("Goblin ambush!");
-        char buf[53];
-        snprintf(buf, sizeof(buf), "Goblins have been spotted near the fortress!");
-        tickerPush(buf);
     }
+    // One ticker message per wave (not per goblin)
+    tickerPush("Goblins have been spotted near the fortress!");
 }
 
 // ----------------------------------------------------------------
@@ -125,6 +124,9 @@ static void moveGoblin(int idx) {
             int bsx, bsy;
             if (stockpileFindSlot(&bsx, &bsy)) taskAdd(TASK_HAUL, g.x, g.y, bsx, bsy);
         }
+
+        // Blood on the attack tile
+        mapAddBlood(target.x, target.y);
 
         // Ticker: report the attack
         {

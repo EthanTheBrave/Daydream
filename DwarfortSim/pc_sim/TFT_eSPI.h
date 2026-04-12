@@ -77,17 +77,19 @@ public:
     }
 
     // ----------------------------------------------------------------
-    //  Render framebuffer to Windows/ANSI console
+    //  Render framebuffer to Windows/ANSI console.
+    //  mapRows = total rows to display (pass MAP_H + 2 to include ticker + status).
     // ----------------------------------------------------------------
     void flush(int mapCols, int mapRows) const {
         // Build output in a buffer — avoid thousands of tiny writes
-        static char out[SIM_FB_ROWS * SIM_FB_COLS * 32];
+        // Each cell: ~20 bytes ANSI + up to 3 bytes UTF-8 char
+        static char out[SIM_FB_ROWS * SIM_FB_COLS * 36];
         int n = 0;
 
         // Home cursor
         n += sprintf(out + n, "\033[H");
 
-        for (int r = 0; r < mapRows + 1; r++) {  // +1 for status bar row
+        for (int r = 0; r < mapRows; r++) {
             uint16_t lastFg = 0xFFFF, lastBg = 0xFFFF;
             for (int c = 0; c < mapCols; c++) {
                 const Cell& cell = fb[r][c];
@@ -97,14 +99,17 @@ public:
                                  rgb565_ansi(fg), rgb565_ansi(bg));
                     lastFg = fg; lastBg = bg;
                 }
-                char ch = cell.ch;
-                // Replace CP437 special chars that don't render in most terminals
-                if ((uint8_t)ch < 32) ch = '@';
-                out[n++] = ch;
+                // Map CP437 special glyphs to their UTF-8 Unicode equivalents.
+                // The renderer uses \x01 (☺ dwarf), \x02 (☻ corpse), \x0F (☼ shrine).
+                uint8_t ch = (uint8_t)cell.ch;
+                if      (ch == 0x01) { out[n++]='\xE2'; out[n++]='\x98'; out[n++]='\xBA'; } // ☺
+                else if (ch == 0x02) { out[n++]='\xE2'; out[n++]='\x98'; out[n++]='\xBB'; } // ☻
+                else if (ch == 0x0F) { out[n++]='\xE2'; out[n++]='\x98'; out[n++]='\xBC'; } // ☼
+                else if (ch < 32)    { out[n++] = ' '; }  // other control chars → space
+                else                 { out[n++] = (char)ch; }
             }
             n += sprintf(out + n, "\033[0m\n");
         }
-        // Reset color
         n += sprintf(out + n, "\033[0m");
         out[n] = '\0';
         fputs(out, stdout);

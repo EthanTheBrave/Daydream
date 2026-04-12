@@ -37,7 +37,7 @@ static void computeLayout() {
     sHallCx = (sHX1 + sHX2) / 2;
 
     // ---- N corridor: 1 or 3 wide, 2-3 tiles tall, above hall ----
-    int ncorrW   = random(0, 2) ? 3 : 1;
+    int ncorrW   = random(0, 2) ? 3 : 2;  // minimum 2 wide so dwarves can pass
     int ncorrLen = 2 + random(0, 2);
     sNX1 = sHallCx - ncorrW / 2;
     sNX2 = sHallCx + ncorrW / 2;
@@ -73,11 +73,11 @@ static void computeLayout() {
     if (sBX1 < 1) sBX1 = 1;
     if (sBX2 >= MAP_W) sBX2 = MAP_W - 2;
 
-    // ---- E corridor: hall east wall → x=22, y=12-14 ----
+    // ---- E antechamber: hall east wall → x=26, full hall height ----
     sEX1 = sHX2 + 1;
     sEX2 = FORT_ECORR_X2;
-    sEY1 = FORT_ECORR_Y1;
-    sEY2 = FORT_ECORR_Y2;
+    sEY1 = sHY1;   // matches hall height for a spacious junction
+    sEY2 = sHY2;
 
     // ---- Hall furniture ----
     gHallTableX[0] = (int8_t)(sHX1 + 1);      gHallTableY[0] = (int8_t)(sHY1 + 1);
@@ -771,19 +771,20 @@ static void progressTempleDig() {
                 if (adj) { mapDesignate(x,y,true); taskAdd(TASK_DIG,x,y); }
             }
         }
-        // Passage tiles
+        // Passage tiles (2 wide: PASS_X to PASS_X2)
         for (int y = FORT_TEMPLE_PASS_Y1; y <= FORT_TEMPLE_PASS_Y2; y++) {
-            int x = FORT_TEMPLE_PASS_X;
-            if (!mapInBounds(x,y) || mapGet(x,y) != TILE_WALL || mapDesignated(x,y)) continue;
-            bool adj = false;
-            for (int d = 0; d < 4 && !adj; d++)
-                if (mapInBounds(x+DX[d],y+DY[d]) && mapPassable(x+DX[d],y+DY[d])) adj = true;
-            if (adj) { mapDesignate(x,y,true); taskAdd(TASK_DIG,x,y); }
+            for (int x = FORT_TEMPLE_PASS_X; x <= FORT_TEMPLE_PASS_X2; x++) {
+                if (!mapInBounds(x,y) || mapGet(x,y) != TILE_WALL || mapDesignated(x,y)) continue;
+                bool adj = false;
+                for (int d = 0; d < 4 && !adj; d++)
+                    if (mapInBounds(x+DX[d],y+DY[d]) && mapPassable(x+DX[d],y+DY[d])) adj = true;
+                if (adj) { mapDesignate(x,y,true); taskAdd(TASK_DIG,x,y); }
+            }
         }
         // Done when all dug
         if (fortCountRemainingDig(FORT_TEMPLE_X1, FORT_TEMPLE_Y1, FORT_TEMPLE_X2, FORT_TEMPLE_Y2) == 0
             && fortCountRemainingDig(FORT_TEMPLE_PASS_X, FORT_TEMPLE_PASS_Y1,
-                                     FORT_TEMPLE_PASS_X, FORT_TEMPLE_PASS_Y2) == 0) {
+                                     FORT_TEMPLE_PASS_X2, FORT_TEMPLE_PASS_Y2) == 0) {
             mapSetRoomRect(FORT_TEMPLE_X1, FORT_TEMPLE_Y1, FORT_TEMPLE_X2, FORT_TEMPLE_Y2, ROOM_TEMPLE);
             sTempleDug = true;
             Serial.println("Temple complete");
@@ -861,6 +862,9 @@ void fortPlanInit() {
 void fortPlanTick() {
     gTick++;
 
+    // Blood decay
+    if (gTick % BLOOD_DECAY_INTERVAL == 0) mapDecayBlood();
+
     // Global season tracking — updates visuals and foraging rates
     {
         static const char* kSeasonMsgsEarly[] = {
@@ -896,23 +900,18 @@ void fortPlanTick() {
         if (fortReady && gSeason == 3)      amount = 0;                     // winter: none
         else if (fortReady && gSeason == 2) amount = FORAGE_FOOD_AMOUNT / 2; // autumn: half
         else                                amount = FORAGE_FOOD_AMOUNT;     // spring/summer: full
-        if (amount > 0) {
-            int barrelCap = (mapCountItemGlobal(ITEM_FOOD) + mapCountItemGlobal(ITEM_BARREL))
-                            * BARREL_CAPACITY;
-            if (barrelCap > 0)
-                gFoodSupply = min(gFoodSupply + amount, barrelCap);
-        }
+        if (amount > 0)
+            gFoodSupply = min(gFoodSupply + amount, MAX_FOOD_SUPPLY);
     }
     // Drink from stream — halved in winter (frozen stream), normal otherwise.
     // Same FS_DONE gate so dwarves can't die of thirst before still is built.
     if (gTick % COLLECT_DRINK_INTERVAL == 0) {
-        int barrelCap = (mapCountItemGlobal(ITEM_DRINK) + mapCountItemGlobal(ITEM_BARREL))
-                        * BARREL_CAPACITY;
+        // Stream water is always accessible — no barrel inventory gate.
+        // In winter reduce to half (ice); seasonal penalties only post-FS_DONE.
         int amount = (gFortStage >= FS_DONE && gSeason == 3)
                      ? COLLECT_DRINK_AMOUNT / 2
                      : COLLECT_DRINK_AMOUNT;
-        if (barrelCap > 0)
-            gDrinkSupply = min(gDrinkSupply + amount, barrelCap);
+        gDrinkSupply = min(gDrinkSupply + amount, MAX_DRINK_SUPPLY);
     }
 
     // Sync physical barrel items with supply levels (every 5 ticks)
@@ -1013,8 +1012,8 @@ void fortPlanTick() {
         mapSetRoomRect(sSX1, sSY1, sSX2, sSY2, ROOM_HALL);
         gFortStage = FS_BEDROOMS;
         strncpy(gStageName, "Bedrooms", sizeof(gStageName)-1);
-        // Connecting passage from S. Corridor (single column, aligned with hall centre)
-        fortDesignateRect(sHallCx, sBY1, sHallCx, sBCY - 1);
+        // 2-wide connecting passage from S. Corridor (between rooms 1 and 2)
+        fortDesignateRect(sHallCx - 1, sBY1, sHallCx, sBCY - 1);
         // East-west bedroom corridor
         fortDesignateRect(sBX1, sBCY, sBX2, sBCY);
         // 3 north rooms (2×2 interior each; dividing walls stay solid)
@@ -1030,7 +1029,7 @@ void fortPlanTick() {
     case FS_BEDROOMS: {
         // Done when all 8 sub-rects are fully dug
         int bedLeft = 0;
-        bedLeft += fortCountRemainingDig(sHallCx, sBY1, sHallCx, sBCY-1);
+        bedLeft += fortCountRemainingDig(sHallCx - 1, sBY1, sHallCx, sBCY-1);
         bedLeft += fortCountRemainingDig(sBX1, sBCY, sBX2, sBCY);
         bedLeft += fortCountRemainingDig(sBX1,   sBY1, sBX1+1, sBCY-1);
         bedLeft += fortCountRemainingDig(sBX1+4, sBY1, sBX1+5, sBCY-1);
