@@ -43,10 +43,12 @@
 
 // --- Display (do not change unless using a different font) ---------
 #define MAP_W             53     // Tile columns  (53 * 6 = 318px — fills ~320px landscape)
-#define MAP_H             29     // Tile rows     (29 * 8 + 8 = 240px)
+#define MAP_H             28     // Tile rows     (28 * 8 = 224px; +8 ticker +8 status = 240px)
 #define FONT_W             6     // Pixels per character (TFT_eSPI font 1)
 #define FONT_H             8
-#define STATUS_BAR_Y     232     // Pixel Y of status bar (MAP_H * FONT_H)
+#define TICKER_BAR_Y     224     // Pixel Y of scrolling event ticker (MAP_H * FONT_H)
+#define TICKER_BAR_H       8
+#define STATUS_BAR_Y     232     // Pixel Y of status bar (TICKER_BAR_Y + TICKER_BAR_H)
 #define STATUS_BAR_H       8     // Pixels tall for status bar — 232+8=240px total
 
 // --- Crafting ------------------------------------------------------
@@ -99,9 +101,9 @@
 #define HALL_CHAIRS        4
 #define BED_COUNT  6           // one bed per small room (3 north + 3 south)
 
-// --- Win condition -------------------------------------------------
+// --- Season tracking -----------------------------------------------
 #define TICKS_PER_SEASON  1000   // ticks per in-game season (Spring/Summer/Autumn/Winter)
-#define SEASONS_TO_WIN      40   // survive this many seasons after fort completion to win
+// No victory condition — fortress runs until all dwarves die
 
 // --- Combat / Barracks (4×4 room at end of workshop wing) ----------
 #define FORT_BAR_X1  44

@@ -3,6 +3,7 @@
 #include "map.h"
 #include "pathfind.h"
 #include "fortplan.h"
+#include "renderer.h"
 #include "config.h"
 #include <Arduino.h>
 #include <string.h>
@@ -79,6 +80,12 @@ void dwarfSpawnMigrants(int count) {
 
         Serial.print("Migrant arrived: ");
         Serial.println(gDwarves[slot].name);
+        {
+            char buf[53];
+            snprintf(buf, sizeof(buf), "%s has arrived to join the fortress.",
+                     gDwarves[slot].name);
+            tickerPush(buf);
+        }
     }
 }
 
@@ -170,6 +177,11 @@ static void tickDwarf(int idx) {
             (unsigned)gTick, d.name, cause,
             (int)d.hunger, (int)d.thirst, (int)d.fatigue,
             gFoodSupply, gDrinkSupply);
+        {
+            char buf[53];
+            snprintf(buf, sizeof(buf), "%s has died of %s.", d.name, cause);
+            tickerPush(buf);
+        }
         d.state = DS_DEAD;
         d.dead  = true;
         d.active = false;

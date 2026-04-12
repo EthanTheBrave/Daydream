@@ -4,17 +4,18 @@
 #include "dwarves.h"
 #include "fortplan.h"
 #include "config.h"
+#include "renderer.h"
 #include <Arduino.h>
 #include <string.h>
 
 Goblin gGoblins[MAX_GOBLINS];
 int    gNumGoblins = 0;
 
-// ----------------------------------------------------------------
-void goblinsInit() {
-    memset(gGoblins, 0, sizeof(gGoblins));
-    gNumGoblins = 0;
-}
+// Scaling state
+static uint32_t sNextAmbush    = GOBLIN_AMBUSH_START;
+static uint32_t sAmbushInterval = GOBLIN_AMBUSH_INTERVAL;
+static int      sWaveBonus      = 0;   // extra goblins per wave due to scaling
+static uint32_t sLastScaleSeason = 0xFFFFFFFF;
 
 // ----------------------------------------------------------------
 static void spawnGoblinWave(int count) {
@@ -63,6 +64,9 @@ static void spawnGoblinWave(int count) {
         mapMarkDirty(x, y);
 
         Serial.println("Goblin ambush!");
+        char buf[53];
+        snprintf(buf, sizeof(buf), "Goblins have been spotted near the fortress!");
+        tickerPush(buf);
     }
 }
 
@@ -122,6 +126,13 @@ static void moveGoblin(int idx) {
             if (stockpileFindSlot(&bsx, &bsy)) taskAdd(TASK_HAUL, g.x, g.y, bsx, bsy);
         }
 
+        // Ticker: report the attack
+        {
+            char buf[53];
+            snprintf(buf, sizeof(buf), "%s was wounded by a goblin!", target.name);
+            tickerPush(buf);
+        }
+
         // Update fall reason if this kills the last dwarf
         int alive = 0;
         for (int j = 0; j < gNumDwarves; j++) if (!gDwarves[j].dead) alive++;
@@ -154,16 +165,52 @@ static void moveGoblin(int idx) {
 }
 
 // ----------------------------------------------------------------
+void goblinsInit() {
+    memset(gGoblins, 0, sizeof(gGoblins));
+    gNumGoblins      = 0;
+    sNextAmbush      = GOBLIN_AMBUSH_START;
+    sAmbushInterval  = GOBLIN_AMBUSH_INTERVAL;
+    sWaveBonus       = 0;
+    sLastScaleSeason = 0xFFFFFFFF;
+}
+
+// ----------------------------------------------------------------
 void goblinsTick() {
     if (gFortFallen) return;
 
-    // Trigger ambush waves
-    if (gTick >= GOBLIN_AMBUSH_START) {
-        uint32_t elapsed = gTick - GOBLIN_AMBUSH_START;
-        if (elapsed % GOBLIN_AMBUSH_INTERVAL == 0) {
-            int count = GOBLIN_WAVE_MIN + random(0, GOBLIN_WAVE_MAX - GOBLIN_WAVE_MIN + 1);
-            spawnGoblinWave(count);
+    // Scale difficulty when barracks exists: every GOBLIN_SCALE_SEASON seasons,
+    // reduce interval by 100 (floor GOBLIN_AMBUSH_MIN_INTERVAL) and +1 wave size.
+    if (gFortStage >= FS_DONE) {
+        // Check if a barracks has been built
+        bool hasBarracks = false;
+        for (int rx = 0; rx < MAP_W && !hasBarracks; rx++)
+            for (int ry = 0; ry < MAP_H && !hasBarracks; ry++)
+                if (gMap[ry][rx].roomType == ROOM_BARRACKS) hasBarracks = true;
+
+        if (hasBarracks) {
+            // Compute completed seasons since FS_DONE
+            uint32_t seasons = (gTick >= gDoneTick)
+                               ? (gTick - gDoneTick) / TICKS_PER_SEASON
+                               : 0;
+            uint32_t scaleLevel = seasons / GOBLIN_SCALE_SEASON;
+            if (scaleLevel != sLastScaleSeason) {
+                sLastScaleSeason = scaleLevel;
+                uint32_t newInterval = GOBLIN_AMBUSH_INTERVAL
+                                       - (uint32_t)(scaleLevel * 100);
+                if (newInterval < GOBLIN_AMBUSH_MIN_INTERVAL || newInterval > GOBLIN_AMBUSH_INTERVAL)
+                    newInterval = GOBLIN_AMBUSH_MIN_INTERVAL;
+                sAmbushInterval = newInterval;
+                sWaveBonus      = (int)scaleLevel;
+            }
         }
+    }
+
+    // Fire ambush wave when timer expires
+    if (gTick >= sNextAmbush) {
+        int count = GOBLIN_WAVE_MIN + sWaveBonus
+                    + random(0, GOBLIN_WAVE_MAX - GOBLIN_WAVE_MIN + 1);
+        spawnGoblinWave(count);
+        sNextAmbush = gTick + sAmbushInterval;
     }
 
     for (int i = 0; i < gNumGoblins; i++) {

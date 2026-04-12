@@ -35,6 +35,11 @@ extern TFT_eSPI tft;
 #define C_PURPLE     0x780F
 #define C_DARK_BROWN 0x4200
 
+// Seasonal colours
+#define C_SNOW_FG    0xFFFF   // pure white (snow / frost)
+#define C_SNOW_BG    0x2104   // same as C_DARK_GRAY — frozen ground shadow
+#define C_AUTUMN_LEF 0xFD20   // C_ORANGE — autumn foliage / shrubs
+
 // Room background tints (very dark, just a hint of colour)
 #define BG_HALL      0x0821  // dim blue-grey
 #define BG_STOCKPILE 0x1800  // dim red-brown
@@ -158,22 +163,40 @@ static void tileVisual(int x, int y, char* ch, uint16_t* fg, uint16_t* bg) {
             break;
 
         case TILE_GRASS:
-            *ch = ','; *fg = C_GREEN;      *bg = C_BLACK;     break;
+            *bg = C_BLACK;
+            if (gSeason == 3) { *ch = ','; *fg = C_SNOW_FG; *bg = C_SNOW_BG; }
+            else if (gSeason == 2) { *ch = ','; *fg = C_BROWN; }
+            else { *ch = ','; *fg = C_GREEN; }
+            break;
 
         case TILE_SHRUB:
-            *ch = '"'; *fg = C_DARK_GREEN; *bg = C_BLACK;     break;
+            *bg = C_BLACK;
+            if (gSeason == 3) { *ch = '"'; *fg = C_SNOW_FG; *bg = C_SNOW_BG; }
+            else if (gSeason == 2) { *ch = '"'; *fg = C_AUTUMN_LEF; }
+            else { *ch = '"'; *fg = C_DARK_GREEN; }
+            break;
 
         case TILE_FLOWER:
-            *ch = '*'; *fg = C_PINK;       *bg = C_BLACK;     break;
+            *bg = C_BLACK;
+            if (gSeason == 3) { *ch = ','; *fg = C_SNOW_FG; *bg = C_SNOW_BG; }  // buried
+            else if (gSeason == 2) { *ch = '*'; *fg = C_BROWN; }  // wilted
+            else { *ch = '*'; *fg = C_PINK; }
+            break;
 
         case TILE_TREE:
-            *ch = 'T'; *fg = C_DARK_GREEN; *bg = C_BLACK;     break;
+            *bg = C_BLACK;
+            if (gSeason == 3) { *ch = 'T'; *fg = C_GRAY; *bg = C_SNOW_BG; }   // bare / snowy
+            else if (gSeason == 2) { *ch = 'T'; *fg = C_AUTUMN_LEF; }         // autumn foliage
+            else { *ch = 'T'; *fg = C_DARK_GREEN; }
+            break;
 
         case TILE_DOOR:
             *ch = '+'; *fg = C_BROWN;      *bg = C_BLACK;     break;
 
         case TILE_WATER:
-            *ch = '~'; *fg = C_BLUE;       *bg = C_DARK_BLUE; break;
+            if (gSeason == 3) { *ch = '~'; *fg = C_GRAY; *bg = C_SNOW_BG; }   // frozen
+            else { *ch = '~'; *fg = C_BLUE; *bg = C_DARK_BLUE; }
+            break;
 
         case TILE_RAMP:
             *ch = '/'; *fg = C_GRAY;       *bg = C_DARK_GRAY; break;
@@ -241,6 +264,69 @@ static void drawCell(int x, int y) {
 }
 
 // ----------------------------------------------------------------
+//  Ticker — scrolling event log (one line above the status bar)
+// ----------------------------------------------------------------
+#define TICKER_QUEUE_CAP  8
+#define TICKER_MSG_LEN   53    // max chars (= MAP_W tiles)
+#define TICKER_REVEAL_RATE 1   // chars revealed per game tick
+#define TICKER_HOLD_TICKS 80   // ticks to hold a fully-revealed message
+
+static char  sTickerQueue[TICKER_QUEUE_CAP][TICKER_MSG_LEN + 1];
+static int   sTickerQHead  = 0;
+static int   sTickerQTail  = 0;
+static char  sTickerCurrent[TICKER_MSG_LEN + 1];
+static int   sTickerReveal = 0;   // chars shown so far
+static int   sTickerHold   = 0;   // ticks spent at full reveal
+
+void tickerPush(const char* msg) {
+    int next = (sTickerQTail + 1) % TICKER_QUEUE_CAP;
+    if (next == sTickerQHead) return; // queue full — drop oldest? just drop new
+    strncpy(sTickerQueue[sTickerQTail], msg, TICKER_MSG_LEN);
+    sTickerQueue[sTickerQTail][TICKER_MSG_LEN] = 0;
+    sTickerQTail = next;
+}
+
+static void tickerLoadNext() {
+    if (sTickerQHead == sTickerQTail) return; // nothing queued
+    strncpy(sTickerCurrent, sTickerQueue[sTickerQHead], TICKER_MSG_LEN + 1);
+    sTickerQHead = (sTickerQHead + 1) % TICKER_QUEUE_CAP;
+    sTickerReveal = 0;
+    sTickerHold   = 0;
+}
+
+void tickerTick() {
+    int msgLen = (int)strlen(sTickerCurrent);
+    if (msgLen == 0) { tickerLoadNext(); return; }
+
+    if (sTickerReveal < msgLen) {
+        sTickerReveal += TICKER_REVEAL_RATE;
+        if (sTickerReveal > msgLen) sTickerReveal = msgLen;
+        return;
+    }
+    // Fully revealed — hold, then expire
+    if (++sTickerHold >= TICKER_HOLD_TICKS) {
+        sTickerCurrent[0] = 0;
+        tickerLoadNext();
+    }
+}
+
+static void drawTicker() {
+    tft.fillRect(0, TICKER_BAR_Y, MAP_W * FONT_W, TICKER_BAR_H, C_BLACK);
+    if (sTickerReveal > 0 && sTickerCurrent[0]) {
+        char buf[TICKER_MSG_LEN + 1];
+        int n = sTickerReveal < TICKER_MSG_LEN ? sTickerReveal : TICKER_MSG_LEN;
+        int msgLen = (int)strlen(sTickerCurrent);
+        if (n > msgLen) n = msgLen;
+        strncpy(buf, sTickerCurrent, n);
+        buf[n] = 0;
+        tft.setTextColor(C_CYAN, C_BLACK);
+        tft.setTextSize(1);
+        tft.setCursor(2, TICKER_BAR_Y + 1);
+        tft.print(buf);
+    }
+}
+
+// ----------------------------------------------------------------
 static void drawStatus() {
     char buf[80];
     int alive = 0, dig = 0, haul = 0, craft = 0, train = 0;
@@ -280,6 +366,7 @@ void renderAll() {
     for (int y = 0; y < MAP_H; y++)
         for (int x = 0; x < MAP_W; x++)
             drawCell(x, y);
+    drawTicker();
     drawStatus();
     mapClearAllDirty();
 }
@@ -323,39 +410,6 @@ void renderFailure(const char* reason) {
 }
 
 // ----------------------------------------------------------------
-void renderVictory(int seasons, int alive) {
-    tft.fillScreen(C_BLACK);
-
-    tft.setTextSize(2);
-    tft.setTextColor(C_YELLOW, C_BLACK);
-    tft.setCursor(22, 55);
-    tft.print("FORTRESS COMPLETE");
-
-    tft.fillRect(10, 78, MAP_W * FONT_W - 20, 2, C_YELLOW);
-
-    char buf[64];
-    snprintf(buf, sizeof(buf), "Survived %d seasons", seasons);
-    tft.setTextSize(1);
-    tft.setTextColor(C_WHITE, C_BLACK);
-    tft.setCursor(88, 96);
-    tft.print(buf);
-
-    snprintf(buf, sizeof(buf), "%d dwarves remain", alive);
-    tft.setTextColor(C_CYAN, C_BLACK);
-    tft.setCursor(94, 112);
-    tft.print(buf);
-
-    tft.setTextColor(C_DARK_GREEN, C_BLACK);
-    tft.setCursor(46, 136);
-    tft.print("The legend will be sung forever.");
-
-    snprintf(buf, sizeof(buf), "Ticks: %u", (unsigned int)gTick);
-    tft.setTextColor(C_GRAY, C_BLACK);
-    tft.setCursor(94, 160);
-    tft.print(buf);
-}
-
-// ----------------------------------------------------------------
 void renderFrame() {
     for (int i = 0; i < gNumDwarves; i++) {
         if (!gDwarves[i].active) continue;
@@ -378,5 +432,6 @@ void renderFrame() {
             if (mapIsDirty(x, y)) drawCell(x, y);
 
     mapClearAllDirty();
+    drawTicker();
     drawStatus();
 }

@@ -87,12 +87,6 @@ void loop() {
         renderFailure(gFortFallReason);
         while (true) delay(1000);
     }
-    if (gFortWon) {
-        int alive = 0;
-        for (int i = 0; i < gNumDwarves; i++) if (!gDwarves[i].dead) alive++;
-        renderVictory(SEASONS_TO_WIN, alive);
-        while (true) delay(1000);
-    }
 
     uint32_t now = millis();
     if (now - sLastTick >= SIM_TICK_MS) {
@@ -101,6 +95,7 @@ void loop() {
         dwarvesTick();
         animalsTick();
         goblinsTick();
+        tickerTick();
         renderFrame();
     }
 }

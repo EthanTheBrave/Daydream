@@ -4,6 +4,7 @@
 #include "dwarves.h"
 #include "fortplan.h"
 #include "config.h"
+#include "renderer.h"
 #include <Arduino.h>
 #include <string.h>
 
@@ -140,30 +141,41 @@ void animalsTick() {
     if (gFortStage >= FS_FURNISH_HALL && gTick % CAT_SPAWN_INTERVAL == 0)
         spawnAnimal(ANIMAL_CAT);
 
-    // Sheep harvest: periodically butcher one sheep (if ≥2 present) for food + bone
-    if (gTick > 0 && gTick % SHEEP_HARVEST_INTERVAL == 0) {
-        int sheepCount = 0;
-        for (int i = 0; i < gNumAnimals; i++)
-            if (gAnimals[i].active && gAnimals[i].type == ANIMAL_SHEEP) sheepCount++;
-        if (sheepCount >= 2) {
-            for (int i = 0; i < gNumAnimals; i++) {
-                if (!gAnimals[i].active || gAnimals[i].type != ANIMAL_SHEEP) continue;
-                Animal& a = gAnimals[i];
-                a.active = false;
-                mapMarkDirty(a.x, a.y);
-                {
-                    int cap = (mapCountItemGlobal(ITEM_FOOD) + mapCountItemGlobal(ITEM_BARREL))
-                              * BARREL_CAPACITY;
-                    if (cap > 0) gFoodSupply = min(gFoodSupply + SHEEP_MEAT_FOOD, cap);
-                }
-                mapAddItem(a.x, a.y, ITEM_BONE);
-                int bsx, bsy;
-                if (stockpileFindSlot(&bsx, &bsy))
-                    taskAdd(TASK_HAUL, a.x, a.y, bsx, bsy);
-                Serial.println("Sheep harvested for meat");
-                break;
+    // Helper: butcher one sheep, add meat + bone, return true if done
+    auto butcherOneSheep = [](const char* tickerMsg) -> bool {
+        for (int i = 0; i < gNumAnimals; i++) {
+            if (!gAnimals[i].active || gAnimals[i].type != ANIMAL_SHEEP) continue;
+            Animal& a = gAnimals[i];
+            a.active = false;
+            mapMarkDirty(a.x, a.y);
+            {
+                int cap = (mapCountItemGlobal(ITEM_FOOD) + mapCountItemGlobal(ITEM_BARREL))
+                          * BARREL_CAPACITY;
+                if (cap > 0) gFoodSupply = min(gFoodSupply + SHEEP_MEAT_FOOD, cap);
             }
+            mapAddItem(a.x, a.y, ITEM_BONE);
+            int bsx, bsy;
+            if (stockpileFindSlot(&bsx, &bsy))
+                taskAdd(TASK_HAUL, a.x, a.y, bsx, bsy);
+            Serial.println("Sheep harvested for meat");
+            tickerPush(tickerMsg);
+            return true;
         }
+        return false;
+    };
+
+    // Scheduled harvest: periodically butcher a sheep
+    if (gTick > 0 && gTick % SHEEP_HARVEST_INTERVAL == 0)
+        butcherOneSheep("A sheep has been butchered for the stockpile.");
+
+    // Emergency butcher: slaughter a sheep when food is critically low.
+    // No season restriction — a starving fort will take what it can get.
+    // Fires at most once per 100 ticks; can deplete the entire flock.
+    static uint8_t sEmergencyCooldown = 0;
+    if (sEmergencyCooldown > 0) sEmergencyCooldown--;
+    if (sEmergencyCooldown == 0 && gFoodSupply < MAX_FOOD_SUPPLY / 5) {
+        if (butcherOneSheep("Food is scarce — a sheep is slaughtered for meat."))
+            sEmergencyCooldown = 100;
     }
 
     for (int i = 0; i < gNumAnimals; i++) {

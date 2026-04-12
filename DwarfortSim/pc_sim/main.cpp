@@ -135,6 +135,7 @@ static const char* stateName(DwarfState s) {
         case DS_WANDER:   return "WANDER  ";
         case DS_FETCHING: return "FETCHING";
         case DS_TRAINING: return "TRAINING";
+        case DS_PRAYING:  return "PRAYING ";
         default:          return "???     ";
     }
 }
@@ -278,14 +279,6 @@ static void runHeadless(int maxTicks) {
             fflush(stdout);
             break;
         }
-        if (gFortWon) {
-            int alive = 0;
-            for (int j = 0; j < gNumDwarves; j++) if (!gDwarves[j].dead) alive++;
-            printf("T=%4u  *** FORTRESS VICTORIOUS — survived %d seasons, %d dwarves alive ***\n",
-                   (unsigned)gTick, SEASONS_TO_WIN, alive);
-            fflush(stdout);
-            break;
-        }
     }
 
     int alive = 0;
@@ -334,16 +327,10 @@ int main(int argc, char** argv) {
             dwarvesTick();
             animalsTick();
             goblinsTick();
+            tickerTick();
 
             if (gFortFallen) {
                 renderFailure(gFortFallReason);
-                tft.flush(MAP_W, MAP_H);
-                break;
-            }
-            if (gFortWon) {
-                int alive = 0;
-                for (int i = 0; i < gNumDwarves; i++) if (!gDwarves[i].dead) alive++;
-                renderVictory(SEASONS_TO_WIN, alive);
                 tft.flush(MAP_W, MAP_H);
                 break;
             }

@@ -2,6 +2,7 @@
 #include "map.h"
 #include "tasks.h"
 #include "dwarves.h"
+#include "renderer.h"
 #include "config.h"
 #include <string.h>
 #include <Arduino.h>
@@ -105,8 +106,8 @@ bool gTombDug      = false;
 bool gFortFallen        = false;
 char gFortFallReason[48] = "";
 
-bool     gFortWon  = false;
 uint32_t gDoneTick = 0;
+uint8_t  gSeason   = 0;  // 0=Spring 1=Summer 2=Autumn 3=Winter
 
 // Track which farms are active (TILE_FARM set)
 static bool gFarmsActive = false;
@@ -849,7 +850,6 @@ void fortPlanInit() {
     sShrineQueued      = false;
     gFortFallen        = false;
     gFortFallReason[0] = '\0';
-    gFortWon   = false;
     gDoneTick  = 0;
     strncpy(gStageName, "Arriving", sizeof(gStageName) - 1);
     computeLayout();   // randomize room positions from the already-seeded RNG
@@ -861,18 +861,58 @@ void fortPlanInit() {
 void fortPlanTick() {
     gTick++;
 
-    // Periodic food from surface foraging, drink from stream (barrel-capped)
-    if (gTick % FORAGE_FOOD_INTERVAL == 0) {
-        int barrelCap = (mapCountItemGlobal(ITEM_FOOD) + mapCountItemGlobal(ITEM_BARREL))
-                        * BARREL_CAPACITY;
-        if (barrelCap > 0)
-            gFoodSupply = min(gFoodSupply + FORAGE_FOOD_AMOUNT, barrelCap);
+    // Global season tracking — updates visuals and foraging rates
+    {
+        static const char* kSeasonMsgsEarly[] = {
+            "Spring has come. The frost breaks.",
+            "Summer has come to the fortress.",
+            "Autumn arrives. The leaves are turning.",
+            "Winter has come. Snow covers the land."
+        };
+        static const char* kSeasonMsgsFort[] = {
+            "Spring has come. The frost breaks.",
+            "Summer has come to the fortress.",
+            "Autumn arrives. Foraging grows scarce.",
+            "Winter grips the land. Foraging has stopped."
+        };
+        const char** kSeasonMsgs = (gFortStage >= FS_DONE) ? kSeasonMsgsFort : kSeasonMsgsEarly;
+        uint8_t newSeason = (uint8_t)((gTick / TICKS_PER_SEASON) % 4);
+        if (newSeason != gSeason) {
+            gSeason = newSeason;
+            tickerPush(kSeasonMsgs[gSeason]);
+            // Mark all surface tiles dirty so renderer re-colours them
+            for (int sx = 0; sx < HILL_START_X; sx++)
+                for (int sy = 0; sy < MAP_H; sy++)
+                    mapMarkDirty(sx, sy);
+        }
     }
+
+    // Periodic food from surface foraging.
+    // Seasonal penalties only apply once workshops are built (FS_DONE); before
+    // that dwarves have no alternative food source and would starve.
+    if (gTick % FORAGE_FOOD_INTERVAL == 0) {
+        bool fortReady = (gFortStage >= FS_DONE);
+        int amount;
+        if (fortReady && gSeason == 3)      amount = 0;                     // winter: none
+        else if (fortReady && gSeason == 2) amount = FORAGE_FOOD_AMOUNT / 2; // autumn: half
+        else                                amount = FORAGE_FOOD_AMOUNT;     // spring/summer: full
+        if (amount > 0) {
+            int barrelCap = (mapCountItemGlobal(ITEM_FOOD) + mapCountItemGlobal(ITEM_BARREL))
+                            * BARREL_CAPACITY;
+            if (barrelCap > 0)
+                gFoodSupply = min(gFoodSupply + amount, barrelCap);
+        }
+    }
+    // Drink from stream — halved in winter (frozen stream), normal otherwise.
+    // Same FS_DONE gate so dwarves can't die of thirst before still is built.
     if (gTick % COLLECT_DRINK_INTERVAL == 0) {
         int barrelCap = (mapCountItemGlobal(ITEM_DRINK) + mapCountItemGlobal(ITEM_BARREL))
                         * BARREL_CAPACITY;
+        int amount = (gFortStage >= FS_DONE && gSeason == 3)
+                     ? COLLECT_DRINK_AMOUNT / 2
+                     : COLLECT_DRINK_AMOUNT;
         if (barrelCap > 0)
-            gDrinkSupply = min(gDrinkSupply + COLLECT_DRINK_AMOUNT, barrelCap);
+            gDrinkSupply = min(gDrinkSupply + amount, barrelCap);
     }
 
     // Sync physical barrel items with supply levels (every 5 ticks)
@@ -888,8 +928,10 @@ void fortPlanTick() {
     progressTombDig();  // designate reachable tomb tiles each tick
     if (gFortStage >= FS_DONE) progressTempleDig();
 
-    // Fishing: queue tasks at stream tiles when food reserves are below half
-    if (gFoodSupply < MAX_FOOD_SUPPLY / 2) {
+    // Fishing: disabled in winter (frozen stream), once fort has workshops.
+    // Before FS_DONE, fishing is always available as an early-game food source.
+    bool fishingBlocked = (gFortStage >= FS_DONE && gSeason == 3);
+    if (!fishingBlocked && gFoodSupply < MAX_FOOD_SUPPLY / 2) {
         int fishCount = 0;
         for (int i = 0; i < gTaskCount; i++)
             if (!gTasks[i].done && gTasks[i].type == TASK_FISH) fishCount++;
@@ -1058,19 +1100,10 @@ void fortPlanTick() {
                 if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_BARREL;
             }
         }
-        // Season tracking and win condition.
-        // Victory requires SEASONS_TO_WIN total seasons from embark (not just post-completion),
-        // so a slow build still wins once total game time crosses the threshold.
+        // Season tracking — update stage name; ticker handled globally above.
         {
             static const char* kSeasons[] = {"Spring","Summer","Autumn","Winter"};
-            uint32_t totalSeasons = gTick / TICKS_PER_SEASON;
-            if (totalSeasons < (uint32_t)SEASONS_TO_WIN) {
-                // Show season name cycling from the post-completion tick
-                uint32_t postSeason = (gTick - gDoneTick) / TICKS_PER_SEASON;
-                strncpy(gStageName, kSeasons[postSeason % 4], sizeof(gStageName)-1);
-            } else {
-                gFortWon = true;
-            }
+            strncpy(gStageName, kSeasons[gSeason], sizeof(gStageName)-1);
         }
         break;
     }
