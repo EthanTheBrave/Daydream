@@ -642,14 +642,15 @@ static void manageMushProcessing() {
     int sx = (FORT_WS_STILL_X1+FORT_WS_STILL_X2)/2;
     int sy = (FORT_WS_STILL_Y1+FORT_WS_STILL_Y2)/2;
 
-    // Queue Kitchen cooking if food supply low and kitchen is accessible
-    if (gFoodSupply < MAX_FOOD_SUPPLY / 2 && !taskExistsCraft(CRAFT_MUSHROOM_FOOD)
+    // Queue Kitchen cooking when supply drops below 75% — start early so
+    // mushroom stocks can be converted to food reserves before winter.
+    if (gFoodSupply < MAX_FOOD_SUPPLY * 3 / 4 && !taskExistsCraft(CRAFT_MUSHROOM_FOOD)
         && mapPassable(kx, ky)) {
         int ti = taskAdd(TASK_CRAFT, kx, ky);
         if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_MUSHROOM_FOOD;
     }
-    // Queue Still brewing if drink supply low and still is accessible
-    if (gDrinkSupply < MAX_DRINK_SUPPLY / 2 && !taskExistsCraft(CRAFT_MUSHROOM_BEER)
+    // Queue Still brewing when drink drops below 75%
+    if (gDrinkSupply < MAX_DRINK_SUPPLY * 3 / 4 && !taskExistsCraft(CRAFT_MUSHROOM_BEER)
         && mapPassable(sx, sy)) {
         int ti = taskAdd(TASK_CRAFT, sx, sy);
         if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_MUSHROOM_BEER;
@@ -897,7 +898,7 @@ void fortPlanTick() {
     if (gTick % FORAGE_FOOD_INTERVAL == 0) {
         bool fortReady = (gFortStage >= FS_DONE);
         int amount;
-        if (fortReady && gSeason == 3)      amount = 0;                     // winter: none
+        if (fortReady && gSeason == 3)      amount = FORAGE_FOOD_AMOUNT / 4; // winter: 25% (small game)
         else if (fortReady && gSeason == 2) amount = FORAGE_FOOD_AMOUNT / 2; // autumn: half
         else                                amount = FORAGE_FOOD_AMOUNT;     // spring/summer: full
         if (amount > 0)

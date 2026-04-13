@@ -278,8 +278,8 @@ static void drawCell(int x, int y) {
 // ----------------------------------------------------------------
 #define TICKER_QUEUE_CAP  8
 #define TICKER_MSG_LEN   53    // max chars (= MAP_W tiles)
-#define TICKER_REVEAL_RATE 1   // chars revealed per game tick
-#define TICKER_HOLD_TICKS 80   // ticks to hold a fully-revealed message
+#define TICKER_REVEAL_RATE 3   // chars revealed per game tick
+#define TICKER_HOLD_TICKS 200  // ticks to hold a fully-revealed message
 
 static char  sTickerQueue[TICKER_QUEUE_CAP][TICKER_MSG_LEN + 1];
 static int   sTickerQHead  = 0;
@@ -313,7 +313,12 @@ void tickerTick() {
         if (sTickerReveal > msgLen) sTickerReveal = msgLen;
         return;
     }
-    // Fully revealed — hold, then expire
+    // Fully revealed — cut hold short if a new event is waiting; otherwise hold
+    if (sTickerQHead != sTickerQTail) {
+        sTickerCurrent[0] = 0;
+        tickerLoadNext();
+        return;
+    }
     if (++sTickerHold >= TICKER_HOLD_TICKS) {
         sTickerCurrent[0] = 0;
         tickerLoadNext();

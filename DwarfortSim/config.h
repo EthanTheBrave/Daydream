@@ -34,7 +34,7 @@
 #define SLEEP_RESTORE      5     // Fatigue removed per sleep tick
 
 // --- Work speeds (ticks to complete) -------------------------------
-#define DIG_TICKS          5     // Ticks to excavate one wall tile
+#define DIG_TICKS          3     // Ticks to excavate one wall tile
 #define CHOP_TICKS         4     // Ticks to chop one tree
 #define HAUL_TICKS         2     // Ticks to deposit a carried item
 #define EAT_TICKS          3     // Ticks to eat a meal
@@ -85,7 +85,7 @@
 #define LOW_WOOD_THRESHOLD     4   // designate trees when wood < this
 
 // --- Mushroom farms ------------------------------------------------
-#define MUSHROOM_GROW_INTERVAL 30  // ticks between mushroom spawns per farm plot
+#define MUSHROOM_GROW_INTERVAL 15  // ticks between mushroom spawns per farm plot
 #define MAX_MUSHROOMS_STOCKPILE 20 // stop growing if this many mushrooms in stockpile
 
 // --- Tomb (dug when a dwarf dies) ----------------------------------
