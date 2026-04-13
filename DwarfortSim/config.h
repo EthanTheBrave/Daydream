@@ -77,7 +77,7 @@
 #define FORAGE_FOOD_INTERVAL  15   // ticks between food top-ups
 #define FORAGE_FOOD_AMOUNT    15   // food added per top-up
 #define COLLECT_DRINK_INTERVAL 10  // ticks between drink top-ups
-#define COLLECT_DRINK_AMOUNT  10   // drink added per top-up
+#define COLLECT_DRINK_AMOUNT  15   // drink added per top-up
 #define MAX_FOOD_SUPPLY      200   // supply cap
 #define MAX_DRINK_SUPPLY     200
 
