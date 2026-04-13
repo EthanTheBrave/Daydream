@@ -78,8 +78,7 @@
 #define FORAGE_FOOD_AMOUNT    15   // food added per top-up
 #define COLLECT_DRINK_INTERVAL 10  // ticks between drink top-ups
 #define COLLECT_DRINK_AMOUNT  15   // drink added per top-up
-#define MAX_FOOD_SUPPLY      200   // supply cap
-#define MAX_DRINK_SUPPLY     200
+// No supply cap — food and drink can accumulate without limit
 
 // --- Wood supply (surface trees) -----------------------------------
 #define LOW_WOOD_THRESHOLD     4   // designate trees when wood < this

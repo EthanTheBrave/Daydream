@@ -550,9 +550,9 @@ static void tickDwarf(int idx) {
                     taskUnclaim(d.taskIdx); d.taskIdx=-1; d.state=DS_IDLE; break;
                 }
                 if (ct == CRAFT_MUSHROOM_FOOD)
-                    gFoodSupply  = min(gFoodSupply  + 3, MAX_FOOD_SUPPLY);
+                    gFoodSupply  += 3;
                 else
-                    gDrinkSupply = min(gDrinkSupply + 3, MAX_DRINK_SUPPLY);
+                    gDrinkSupply += 3;
             } else {
                 // Dwarf physically carried the primary material (in d.carrying)
                 if (d.carrying == ITEM_NONE) {
@@ -609,7 +609,7 @@ static void tickDwarf(int idx) {
         // --- FISH ---
         } else if (t.type == TASK_FISH) {
             if (random(0, 2) == 0)  // 50% catch chance
-                gFoodSupply = min(gFoodSupply + FISH_FOOD_AMOUNT, MAX_FOOD_SUPPLY);
+                gFoodSupply += FISH_FOOD_AMOUNT;
 
         // --- BURY (phase 1: pick up corpse) ---
         } else if (t.type == TASK_BURY) {

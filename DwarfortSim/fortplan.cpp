@@ -642,15 +642,15 @@ static void manageMushProcessing() {
     int sx = (FORT_WS_STILL_X1+FORT_WS_STILL_X2)/2;
     int sy = (FORT_WS_STILL_Y1+FORT_WS_STILL_Y2)/2;
 
-    // Queue Kitchen cooking when supply drops below 75% — start early so
+    // Queue Kitchen cooking when food drops below 150 — start early so
     // mushroom stocks can be converted to food reserves before winter.
-    if (gFoodSupply < MAX_FOOD_SUPPLY * 3 / 4 && !taskExistsCraft(CRAFT_MUSHROOM_FOOD)
+    if (gFoodSupply < 150 && !taskExistsCraft(CRAFT_MUSHROOM_FOOD)
         && mapPassable(kx, ky)) {
         int ti = taskAdd(TASK_CRAFT, kx, ky);
         if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_MUSHROOM_FOOD;
     }
-    // Queue Still brewing when drink drops below 75%
-    if (gDrinkSupply < MAX_DRINK_SUPPLY * 3 / 4 && !taskExistsCraft(CRAFT_MUSHROOM_BEER)
+    // Queue Still brewing when drink drops below 150
+    if (gDrinkSupply < 150 && !taskExistsCraft(CRAFT_MUSHROOM_BEER)
         && mapPassable(sx, sy)) {
         int ti = taskAdd(TASK_CRAFT, sx, sy);
         if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_MUSHROOM_BEER;
@@ -902,7 +902,7 @@ void fortPlanTick() {
         else if (fortReady && gSeason == 2) amount = FORAGE_FOOD_AMOUNT / 2; // autumn: half
         else                                amount = FORAGE_FOOD_AMOUNT;     // spring/summer: full
         if (amount > 0)
-            gFoodSupply = min(gFoodSupply + amount, MAX_FOOD_SUPPLY);
+            gFoodSupply += amount;
     }
     // Drink from stream — halved in winter (frozen stream), normal otherwise.
     // Same FS_DONE gate so dwarves can't die of thirst before still is built.
@@ -912,7 +912,7 @@ void fortPlanTick() {
         int amount = (gFortStage >= FS_DONE && gSeason == 3)
                      ? COLLECT_DRINK_AMOUNT / 2
                      : COLLECT_DRINK_AMOUNT;
-        gDrinkSupply = min(gDrinkSupply + amount, MAX_DRINK_SUPPLY);
+        gDrinkSupply += amount;
     }
 
     // Sync physical barrel items with supply levels (every 5 ticks)
@@ -931,7 +931,7 @@ void fortPlanTick() {
     // Fishing: disabled in winter (frozen stream), once fort has workshops.
     // Before FS_DONE, fishing is always available as an early-game food source.
     bool fishingBlocked = (gFortStage >= FS_DONE && gSeason == 3);
-    if (!fishingBlocked && gFoodSupply < MAX_FOOD_SUPPLY / 2) {
+    if (!fishingBlocked && gFoodSupply < 100) {
         int fishCount = 0;
         for (int i = 0; i < gTaskCount; i++)
             if (!gTasks[i].done && gTasks[i].type == TASK_FISH) fishCount++;
@@ -1071,7 +1071,7 @@ void fortPlanTick() {
         manageMushProcessing();
         manageBins();
         // Queue bone broth at kitchen if food low and bones available
-        if (gFoodSupply < MAX_FOOD_SUPPLY / 2
+        if (gFoodSupply < 100
             && mapCountItemGlobal(ITEM_BONE) >= 2
             && !taskExistsCraft(CRAFT_BONE_BROTH)) {
             int kx = (FORT_WS_KITCH_X1+FORT_WS_KITCH_X2)/2;

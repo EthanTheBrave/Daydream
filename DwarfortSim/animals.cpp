@@ -149,9 +149,7 @@ void animalsTick() {
             a.active = false;
             mapMarkDirty(a.x, a.y);
             {
-                int cap = (mapCountItemGlobal(ITEM_FOOD) + mapCountItemGlobal(ITEM_BARREL))
-                          * BARREL_CAPACITY;
-                if (cap > 0) gFoodSupply = min(gFoodSupply + SHEEP_MEAT_FOOD, cap);
+                gFoodSupply += SHEEP_MEAT_FOOD;
             }
             mapAddItem(a.x, a.y, ITEM_BONE);
             int bsx, bsy;
@@ -173,7 +171,7 @@ void animalsTick() {
     // Fires at most once per 100 ticks; can deplete the entire flock.
     static uint8_t sEmergencyCooldown = 0;
     if (sEmergencyCooldown > 0) sEmergencyCooldown--;
-    if (sEmergencyCooldown == 0 && gFoodSupply < MAX_FOOD_SUPPLY / 5) {
+    if (sEmergencyCooldown == 0 && gFoodSupply < 40) {
         if (butcherOneSheep("Food is scarce — a sheep is slaughtered for meat."))
             sEmergencyCooldown = 100;
     }
