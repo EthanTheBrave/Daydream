@@ -171,11 +171,11 @@
 // MAP is 53 wide x 29 tall. Hill starts at x=10. Vertical centre: y=14
 // Surface: x=0..9    Mountain: x=10..52
 
-// Entrance tunnel (3×2 narrow passage — two rows so dwarves can pass)
+// Entrance tunnel (6×4 — wide enough to feel like a real gate passage)
 #define FORT_ENTRANCE_X1  10
-#define FORT_ENTRANCE_Y1  13
-#define FORT_ENTRANCE_X2  12
-#define FORT_ENTRANCE_Y2  14
+#define FORT_ENTRANCE_Y1  12
+#define FORT_ENTRANCE_X2  15
+#define FORT_ENTRANCE_Y2  15
 
 // Main hall (7×7)
 #define FORT_HALL_X1      13
@@ -216,7 +216,7 @@
 // Provides space for future side rooms to branch north/south.
 #define FORT_ECORR_X1     20
 #define FORT_ECORR_Y1     12   // fallback only — overridden by sHY1/sHY2
-#define FORT_ECORR_X2     26
+#define FORT_ECORR_X2     30
 #define FORT_ECORR_Y2     14   // fallback only — overridden by sHY1/sHY2
 
 // Workshop main corridor — 2-tile-wide E-W spine at y=13-14

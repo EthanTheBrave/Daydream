@@ -27,10 +27,10 @@ static int8_t gBedX[BED_COUNT];
 static int8_t gBedY[BED_COUNT];
 
 static void computeLayout() {
-    // ---- Hall: odd width/height, centered on y=14, starts at x=13 ----
+    // ---- Hall: odd width/height, centered on y=14, starts after entrance ----
     int hallW = 5 + 2 * random(0, 3);   // 5, 7, or 9
     int hallH = 5 + 2 * random(0, 3);   // 5, 7, or 9
-    sHX1  = FORT_ENTRANCE_X2 + 1;        // always x=13
+    sHX1  = FORT_ENTRANCE_X2 + 1;        // always x=FORT_ENTRANCE_X2+1
     sHX2  = sHX1 + hallW - 1;
     sHY1  = 14 - hallH / 2;
     sHY2  = 14 + hallH / 2;
@@ -52,7 +52,7 @@ static void computeLayout() {
     sPY2 = sNY1 - 1;
     sPY1 = sPY2 - stockH + 1;
     if (sPY1 < 1) sPY1 = 1;
-    if (sPX1 < 1) sPX1 = 1;
+    if (sPX1 < HILL_START_X + 2) sPX1 = HILL_START_X + 2;
     if (sPX2 >= MAP_W) sPX2 = MAP_W - 2;
 
     // ---- S corridor: same x as N corridor, below hall ----
@@ -70,7 +70,7 @@ static void computeLayout() {
     sBCY = sBY1 + 2;    // bedroom corridor row
     sBY2 = sBY1 + 4;
     if (sBY2 >= MAP_H - 1) { sBY2 = MAP_H - 2; sBCY = sBY1 + (sBY2 - sBY1) / 2; }
-    if (sBX1 < 1) sBX1 = 1;
+    if (sBX1 < HILL_START_X + 2) sBX1 = HILL_START_X + 2;
     if (sBX2 >= MAP_W) sBX2 = MAP_W - 2;
 
     // ---- E antechamber: hall east wall → x=26, full hall height ----
