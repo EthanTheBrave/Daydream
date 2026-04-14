@@ -32,3 +32,13 @@ extern int    gNumGoblins;
 
 void goblinsInit();
 void goblinsTick();
+
+// Save/load support — exposes internal scaling state
+struct GoblinScaleState {
+    uint32_t nextAmbush;
+    uint32_t ambushInterval;
+    int32_t  waveBonus;
+    uint32_t lastScaleSeason;
+};
+void goblinsGetScaleState(GoblinScaleState* out);
+void goblinsSetScaleState(const GoblinScaleState* in);

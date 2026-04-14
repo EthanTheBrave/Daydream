@@ -22,6 +22,7 @@
 #include "animals.h"
 #include "goblins.h"
 #include "renderer.h"
+#include "save.h"
 
 // ----------------------------------------------------------------
 //  TFT instance (used by renderer.cpp via extern)
@@ -48,31 +49,41 @@ void setup() {
     tft.setTextSize(1);
     tft.setTextFont(1);
 
+    saveInit();
+    bool resuming = hasSave();
+
     // Splash
     tft.setTextColor(0xFFE0, 0x0000);
     tft.setCursor(76, 108);
     tft.print("DWARFORT SIMULATOR");
     tft.setTextColor(0x8410, 0x0000);
-    tft.setCursor(106, 120);
-    tft.print("Generating...");
+    tft.setCursor(resuming ? 118 : 106, 120);
+    tft.print(resuming ? "Resuming..." : "Generating...");
     delay(800);
 
-    // Init subsystems
-    uint32_t seed = MAP_SEED ? MAP_SEED : esp_random();
-    Serial.print("Map seed: "); Serial.println(seed);
-    mapInit(seed);
-    tasksInit();
-    fortPlanInit();
-    animalsInit();
-    goblinsInit();
+    if (resuming) {
+        if (!loadGame()) {
+            // Corrupt or incompatible save — start fresh
+            Serial.println("[save] load failed, starting new game");
+            deleteSave();
+            resuming = false;
+        }
+    }
 
-    // Dwarves spawn on the surface, just left of the hillface, vertically centred
-    int spawnX = HILL_START_X - 2;
-    int spawnY = MAP_H / 2;
-    dwarfInit(NUM_DWARVES, spawnX, spawnY);
+    if (!resuming) {
+        uint32_t seed = MAP_SEED ? MAP_SEED : esp_random();
+        Serial.print("Map seed: "); Serial.println(seed);
+        mapInit(seed);
+        tasksInit();
+        fortPlanInit();
+        animalsInit();
+        goblinsInit();
 
-    // Place embark cart with starting materials
-    fortPlaceCart(spawnX, spawnY - 5);
+        int spawnX = HILL_START_X - 2;
+        int spawnY = MAP_H / 2;
+        dwarfInit(NUM_DWARVES, spawnX, spawnY);
+        fortPlaceCart(spawnX, spawnY - 5);
+    }
 
     rendererInit();
     renderAll();
@@ -84,6 +95,7 @@ void setup() {
 // ----------------------------------------------------------------
 void loop() {
     if (gFortFallen) {
+        deleteSave();
         renderFailure(gFortFallReason);
         while (true) delay(1000);
     }
@@ -97,5 +109,6 @@ void loop() {
         goblinsTick();
         tickerTick();
         renderFrame();
+        if (gTick > 0 && gTick % 500 == 0) saveGame();
     }
 }

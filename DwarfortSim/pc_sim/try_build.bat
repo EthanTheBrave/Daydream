@@ -15,6 +15,7 @@ g++.exe -std=c++11 -DHEADLESS=10000 ^
     C:\repos\Daydream\DwarfortSim\goblins.cpp ^
     C:\repos\Daydream\DwarfortSim\fortplan.cpp ^
     C:\repos\Daydream\DwarfortSim\renderer.cpp ^
+    C:\repos\Daydream\DwarfortSim\save.cpp ^
     -o C:\repos\Daydream\DwarfortSim\pc_sim\DwarfortSim_hl.exe ^
     > C:\repos\Daydream\DwarfortSim\pc_sim\try_out.txt 2>&1
 echo EXIT_CODE=%ERRORLEVEL% >> C:\repos\Daydream\DwarfortSim\pc_sim\try_out.txt

@@ -167,6 +167,21 @@ static void moveGoblin(int idx) {
 }
 
 // ----------------------------------------------------------------
+void goblinsGetScaleState(GoblinScaleState* out) {
+    out->nextAmbush      = sNextAmbush;
+    out->ambushInterval  = sAmbushInterval;
+    out->waveBonus       = (int32_t)sWaveBonus;
+    out->lastScaleSeason = sLastScaleSeason;
+}
+
+void goblinsSetScaleState(const GoblinScaleState* in) {
+    sNextAmbush      = in->nextAmbush;
+    sAmbushInterval  = in->ambushInterval;
+    sWaveBonus       = (int)in->waveBonus;
+    sLastScaleSeason = in->lastScaleSeason;
+}
+
+// ----------------------------------------------------------------
 void goblinsInit() {
     memset(gGoblins, 0, sizeof(gGoblins));
     gNumGoblins      = 0;

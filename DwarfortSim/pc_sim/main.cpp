@@ -23,6 +23,7 @@
 #include "../goblins.h"
 #include "../renderer.h"
 #include "../pathfind.h"
+#include "../save.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -53,18 +54,32 @@ static void setup() {
     tft.setTextSize(1);
     tft.setTextFont(1);
 
-    uint32_t seed = MAP_SEED ? MAP_SEED : (uint32_t)time(NULL);
-    // Splash (just printed to stderr on PC)
     fprintf(stderr, "DWARFORT SIMULATOR — PC Debug Build\n");
-    fprintf(stderr, "Generating world (seed %u)...\n", (unsigned)seed);
 
-    mapInit(seed);
-    tasksInit();
-    fortPlanInit();
+    bool resuming = hasSave();
+    if (resuming) {
+        fprintf(stderr, "Resuming from save...\n");
+        if (!loadGame()) {
+            fprintf(stderr, "[save] load failed, starting new game\n");
+            deleteSave();
+            resuming = false;
+        }
+    }
 
-    int spawnX = HILL_START_X - 2;
-    int spawnY = MAP_H / 2;
-    dwarfInit(NUM_DWARVES, spawnX, spawnY);
+    if (!resuming) {
+        uint32_t seed = MAP_SEED ? MAP_SEED : (uint32_t)time(NULL);
+        fprintf(stderr, "Generating world (seed %u)...\n", (unsigned)seed);
+        mapInit(seed);
+        tasksInit();
+        fortPlanInit();
+        animalsInit();
+        goblinsInit();
+
+        int spawnX = HILL_START_X - 2;
+        int spawnY = MAP_H / 2;
+        dwarfInit(NUM_DWARVES, spawnX, spawnY);
+        fortPlaceCart(spawnX, spawnY - 5);
+    }
 
     rendererInit();
     renderAll();
@@ -329,6 +344,7 @@ int main(int argc, char** argv) {
             tickerTick();
 
             if (gFortFallen) {
+                deleteSave();
                 renderFailure(gFortFallReason);
                 tft.flush(MAP_W, MAP_H + 2);
                 // Move cursor below map and wait — without this the window
@@ -340,6 +356,7 @@ int main(int argc, char** argv) {
             }
 
             renderFrame();
+            if (gTick > 0 && gTick % 500 == 0) saveGame();
 
             tft.flush(MAP_W, MAP_H + 2);
             printDebug(tickInterval);
