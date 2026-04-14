@@ -383,15 +383,21 @@ static void manageWoodSupply() {
             }
         }
     }
-    // Regrow a tree on a random surface grass tile every 400 ticks
-    if (gTick % 400 == 0) {
-        for (int attempt = 0; attempt < 20; attempt++) {
-            int tx = random(1, HILL_START_X - 1);
-            int ty = random(1, MAP_H - 1);
-            if (mapGet(tx, ty) == TILE_GRASS) {
-                mapSet(tx, ty, TILE_TREE);
-                mapMarkDirty(tx, ty);
-                break;
+    // Regrow a tree on a random surface grass tile, capped to avoid blocking the surface
+    if (gTick % TREE_REGROW_INTERVAL == 0) {
+        int treeCount = 0;
+        for (int y = 0; y < MAP_H; y++)
+            for (int x = 0; x < HILL_START_X; x++)
+                if (mapInBounds(x, y) && mapGet(x, y) == TILE_TREE) treeCount++;
+        if (treeCount < MAX_SURFACE_TREES) {
+            for (int attempt = 0; attempt < 20; attempt++) {
+                int tx = random(1, HILL_START_X - 1);
+                int ty = random(1, MAP_H - 1);
+                if (mapGet(tx, ty) == TILE_GRASS) {
+                    mapSet(tx, ty, TILE_TREE);
+                    mapMarkDirty(tx, ty);
+                    break;
+                }
             }
         }
     }

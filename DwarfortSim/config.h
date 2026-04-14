@@ -82,6 +82,8 @@
 
 // --- Wood supply (surface trees) -----------------------------------
 #define LOW_WOOD_THRESHOLD     4   // designate trees when wood < this
+#define TREE_REGROW_INTERVAL 800   // ticks between tree regrowth attempts
+#define MAX_SURFACE_TREES     12   // hard cap on trees on the surface at once
 
 // --- Mushroom farms ------------------------------------------------
 #define MUSHROOM_GROW_INTERVAL 15  // ticks between mushroom spawns per farm plot
