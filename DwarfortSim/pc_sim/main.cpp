@@ -24,6 +24,7 @@
 #include "../renderer.h"
 #include "../pathfind.h"
 #include "../save.h"
+#include "../logger.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -56,6 +57,7 @@ static void setup() {
 
     fprintf(stderr, "DWARFORT SIMULATOR — PC Debug Build\n");
 
+    loggerInit();
     bool resuming = hasSave();
     if (resuming) {
         fprintf(stderr, "Resuming from save...\n");
@@ -83,6 +85,7 @@ static void setup() {
 
     rendererInit();
     renderAll();
+    loggerBeginRun();
 }
 
 // ----------------------------------------------------------------
@@ -323,6 +326,8 @@ int main(int argc, char** argv) {
 
     uint32_t tickInterval = SIM_TICK_MS;
     uint32_t lastTick     = millis();
+    char     prevStage[24] = "";
+    strncpy(prevStage, gStageName, sizeof(prevStage) - 1);
 
     while (true) {
         // Key input
@@ -343,7 +348,17 @@ int main(int argc, char** argv) {
             goblinsTick();
             tickerTick();
 
+            if (strcmp(gStageName, prevStage) != 0) {
+                logStageChange(gStageName);
+                strncpy(prevStage, gStageName, sizeof(prevStage) - 1);
+            }
+
+            if (gTick > 0 && gTick % 500 == 0) {
+                logSnapshot();
+            }
+
             if (gFortFallen) {
+                logFortFall();
                 deleteSave();
                 renderFailure(gFortFallReason);
                 tft.flush(MAP_W, MAP_H + 2);
@@ -357,6 +372,8 @@ int main(int argc, char** argv) {
 
             renderFrame();
             if (gTick > 0 && gTick % 500 == 0) saveGame();
+
+
 
             tft.flush(MAP_W, MAP_H + 2);
             printDebug(tickInterval);

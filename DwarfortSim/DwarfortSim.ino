@@ -23,6 +23,7 @@
 #include "goblins.h"
 #include "renderer.h"
 #include "save.h"
+#include "logger.h"
 
 // ----------------------------------------------------------------
 //  TFT instance (used by renderer.cpp via extern)
@@ -50,6 +51,7 @@ void setup() {
     tft.setTextFont(1);
 
     saveInit();
+    loggerInit();
     bool resuming = hasSave();
 
     // Splash
@@ -87,14 +89,18 @@ void setup() {
 
     rendererInit();
     renderAll();
+    loggerBeginRun();
 
     sLastTick = millis();
     Serial.println("DwarfortSim ready.");
 }
 
 // ----------------------------------------------------------------
+static char sPrevStage[24] = "";
+
 void loop() {
     if (gFortFallen) {
+        logFortFall();
         deleteSave();
         renderFailure(gFortFallReason);
         while (true) delay(1000);
@@ -109,6 +115,15 @@ void loop() {
         goblinsTick();
         tickerTick();
         renderFrame();
-        if (gTick > 0 && gTick % 500 == 0) saveGame();
+
+        if (strcmp(gStageName, sPrevStage) != 0) {
+            logStageChange(gStageName);
+            strncpy(sPrevStage, gStageName, sizeof(sPrevStage) - 1);
+        }
+
+        if (gTick > 0 && gTick % 500 == 0) {
+            saveGame();
+            logSnapshot();
+        }
     }
 }
