@@ -483,7 +483,9 @@ static int workshopTotalRemainingDig() {
     n += fortCountRemainingDig(FORT_FARM1_X1, FORT_FARM1_Y1, FORT_FARM1_X2, FORT_FARM1_Y2);
     n += fortCountRemainingDig(FORT_FARM2_X1, FORT_FARM2_Y1, FORT_FARM2_X2, FORT_FARM2_Y2);
     n += fortCountRemainingDig(FORT_FARM3_X1, FORT_FARM3_Y1, FORT_FARM3_X2, FORT_FARM3_Y2);
-    n += fortCountRemainingDig(FORT_BAR_X1,   FORT_BAR_Y1,   FORT_BAR_X2,   FORT_BAR_Y2);
+    n += fortCountRemainingDig(FORT_BAR_X1,      FORT_BAR_Y1,      FORT_BAR_X2,      FORT_BAR_Y2);
+    n += fortCountRemainingDig(FORT_NGALLERY_X1, FORT_NGALLERY_Y,  FORT_NGALLERY_X2, FORT_NGALLERY_Y);
+    n += fortCountRemainingDig(FORT_SGALLERY_X1, FORT_SGALLERY_Y,  FORT_SGALLERY_X2, FORT_SGALLERY_Y);
     return n;
 }
 
@@ -509,8 +511,11 @@ static void progressWorkshopDig() {
         {FORT_WS_FARM_X1,  FORT_WS_FARM_Y1,  FORT_WS_FARM_X2,  FORT_WS_FARM_Y2 },
         {FORT_FARM3_X1,    FORT_FARM3_Y1,    FORT_FARM3_X2,    FORT_FARM3_Y2   },
         {FORT_BAR_X1,      FORT_BAR_Y1,      FORT_BAR_X2,      FORT_BAR_Y2     },
+        // N/S galleries — 1-tile corridors that run above/below all workshop rooms
+        {FORT_NGALLERY_X1, FORT_NGALLERY_Y,  FORT_NGALLERY_X2, FORT_NGALLERY_Y },
+        {FORT_SGALLERY_X1, FORT_SGALLERY_Y,  FORT_SGALLERY_X2, FORT_SGALLERY_Y },
     };
-    static const int kNumRooms = 11;
+    static const int kNumRooms = 13;
     static const int8_t DX[4] = {1,-1,0,0};
     static const int8_t DY[4] = {0,0,1,-1};
 
@@ -573,6 +578,9 @@ static void finaliseWorkshops() {
     gFarmsActive = true;
     // Set barracks room type
     mapSetRoomRect(FORT_BAR_X1, FORT_BAR_Y1, FORT_BAR_X2, FORT_BAR_Y2, ROOM_BARRACKS);
+    // North and south galleries — lateral corridors linking the workshop rows
+    mapSetRoomRect(FORT_NGALLERY_X1, FORT_NGALLERY_Y, FORT_NGALLERY_X2, FORT_NGALLERY_Y, ROOM_HALL);
+    mapSetRoomRect(FORT_SGALLERY_X1, FORT_SGALLERY_Y, FORT_SGALLERY_X2, FORT_SGALLERY_Y, ROOM_HALL);
 
     // Queue initial barrels at woodworker (food/drink storage)
     {
@@ -815,12 +823,38 @@ static void progressTempleDig() {
 static void manageBins() {
     int wx, wy; getCraftLoc(&wx, &wy);
     // Count placed bins
-    int placed = mapCountTileInRect(gStockX1, gStockY1, gStockX2, gStockY2, TILE_BIN);
+    int placed  = mapCountTileInRect(gStockX1, gStockY1, gStockX2, gStockY2, TILE_BIN);
     int inStock = mapCountItemGlobal(ITEM_BIN);
-    if (placed + inStock < 6 && mapCountItemGlobal(ITEM_WOOD) >= 2
-        && !taskExistsCraft(CRAFT_BIN)) {
-        int ti = taskAdd(TASK_CRAFT, wx, wy);
-        if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_BIN;
+
+    if (!taskExistsCraft(CRAFT_BIN) && mapCountItemGlobal(ITEM_WOOD) >= 2) {
+        bool generalCap = (placed + inStock < 6);
+
+        // Also craft if bones exist but no bin has room for them and stockpile isn't full
+        bool needBinForBones = false;
+        if (mapCountItemGlobal(ITEM_BONE) > 0) {
+            bool boneBinAvail = false;
+            for (int y = gStockY1; y <= gStockY2 && !boneBinAvail; y++) {
+                for (int x = gStockX1; x <= gStockX2 && !boneBinAvail; x++) {
+                    if (!mapInBounds(x, y)) continue;
+                    if (gMap[y][x].type != TILE_BIN) continue;
+                    if (gMap[y][x].item != ITEM_NONE && gMap[y][x].item != ITEM_BONE) continue;
+                    if (gMap[y][x].itemCount < BIN_CAPACITY) boneBinAvail = true;
+                }
+            }
+            if (!boneBinAvail) {
+                // Only worth crafting if the stockpile has a free floor tile to place it
+                for (int y = gStockY1; y <= gStockY2 && !needBinForBones; y++)
+                    for (int x = gStockX1; x <= gStockX2 && !needBinForBones; x++)
+                        if (mapInBounds(x,y) && mapGet(x,y) == TILE_FLOOR
+                                && gMap[y][x].item == ITEM_NONE)
+                            needBinForBones = true;
+            }
+        }
+
+        if (generalCap || needBinForBones) {
+            int ti = taskAdd(TASK_CRAFT, wx, wy);
+            if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_BIN;
+        }
     }
     // Place any unplaced bins in stockpile
     if (inStock > 0) {

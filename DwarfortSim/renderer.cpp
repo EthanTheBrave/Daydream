@@ -109,9 +109,18 @@ static void tileVisual(int x, int y, char* ch, uint16_t* fg, uint16_t* bg) {
         }
     }
 
-    // Dwarf overrides everything else (CP437 char 1 = smiley)
-    if (dwarfAt(x, y)) {
-        *ch = '\x01'; *fg = C_YELLOW; return;
+    // Dwarf — count how many are on this tile (pass-through allows stacking)
+    {
+        int dwCount = 0;
+        for (int i = 0; i < gNumDwarves; i++)
+            if (gDwarves[i].active && gDwarves[i].x == x && gDwarves[i].y == y)
+                dwCount++;
+        if (dwCount > 0) {
+            *ch = '\x01';
+            // Slow flash (every 4 ticks) when multiple dwarves share a tile
+            *fg = (dwCount > 1 && (gTick % 4) < 2) ? C_WHITE : C_YELLOW;
+            return;
+        }
     }
 
     // Animal rendering

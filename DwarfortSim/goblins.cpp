@@ -94,7 +94,7 @@ static void moveGoblin(int idx) {
         if (random(0, 2) == 0) {
             mapAddItem(g.x, g.y, ITEM_BONE);
             int bsx, bsy;
-            if (stockpileFindSlot(&bsx, &bsy)) taskAdd(TASK_HAUL, g.x, g.y, bsx, bsy);
+            if (stockpileFindSlot(&bsx, &bsy, ITEM_BONE)) taskAdd(TASK_HAUL, g.x, g.y, bsx, bsy);
         }
         return;
     }
@@ -122,7 +122,7 @@ static void moveGoblin(int idx) {
         if (random(0, 2) == 0) {
             mapAddItem(g.x, g.y, ITEM_BONE);
             int bsx, bsy;
-            if (stockpileFindSlot(&bsx, &bsy)) taskAdd(TASK_HAUL, g.x, g.y, bsx, bsy);
+            if (stockpileFindSlot(&bsx, &bsy, ITEM_BONE)) taskAdd(TASK_HAUL, g.x, g.y, bsx, bsy);
         }
 
         // Blood on the attack tile

@@ -153,7 +153,7 @@ void animalsTick() {
             }
             mapAddItem(a.x, a.y, ITEM_BONE);
             int bsx, bsy;
-            if (stockpileFindSlot(&bsx, &bsy))
+            if (stockpileFindSlot(&bsx, &bsy, ITEM_BONE))
                 taskAdd(TASK_HAUL, a.x, a.y, bsx, bsy);
             Serial.println("Sheep harvested for meat");
             tickerPush(tickerMsg);

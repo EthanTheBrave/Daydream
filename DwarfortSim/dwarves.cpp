@@ -114,25 +114,15 @@ static void dwarfMove(int idx) {
         if (d.taskIdx >= 0) { taskUnclaim(d.taskIdx); d.taskIdx = -1; }
         return;
     }
-    if (dwarfAt(nx, ny, idx)) {
-        // If blocker is sleeping, wake them so they move — breaks access deadlocks
-        for (int j = 0; j < gNumDwarves; j++) {
-            if (j == idx) continue;
-            if (gDwarves[j].active && gDwarves[j].x == nx && gDwarves[j].y == ny
-                    && gDwarves[j].state == DS_SLEEPING) {
-                gDwarves[j].state   = DS_IDLE;
-                gDwarves[j].workLeft = 0;
-                break;
-            }
+    // Wake any sleeping dwarf on the target tile so they vacate
+    for (int j = 0; j < gNumDwarves; j++) {
+        if (j == idx) continue;
+        if (gDwarves[j].active && gDwarves[j].x == nx && gDwarves[j].y == ny
+                && gDwarves[j].state == DS_SLEEPING) {
+            gDwarves[j].state    = DS_IDLE;
+            gDwarves[j].workLeft = 0;
+            break;
         }
-        // Blocked by another dwarf; unclaim after 20 consecutive blocked ticks
-        if (++d.blockedCount >= 20) {
-            d.blockedCount = 0;
-            if (d.taskIdx >= 0) { taskUnclaim(d.taskIdx); d.taskIdx = -1; }
-            d.pathLen = 0; d.pathPos = 0;
-            d.state = DS_IDLE;
-        }
-        return;
     }
     d.blockedCount = 0;
 
@@ -141,6 +131,31 @@ static void dwarfMove(int idx) {
     d.x = (int8_t)nx; d.y = (int8_t)ny;
     mapMarkDirty(d.x, d.y);
     d.pathPos++;
+}
+
+// Find the nearest passable seat adjacent to any placed table.
+// Falls back to eating in place if no table exists yet so early-game
+// dwarves don't waste time walking to an uninitialised stockpile centre.
+static void findMealDest(int fx, int fy, int* ox, int* oy, bool* atTable) {
+    *atTable  = false;
+    *ox = fx;   // default: eat in place
+    *oy = fy;
+    int bestDist = 99999;
+    const int8_t adx[4] = {0,0,1,-1};
+    const int8_t ady[4] = {1,-1,0,0};
+    for (int ty = 0; ty < MAP_H; ty++) {
+        for (int tx = 0; tx < MAP_W; tx++) {
+            if (gMap[ty][tx].type != TILE_TABLE) continue;
+            for (int di = 0; di < 4; di++) {
+                int nx = tx + adx[di], ny = ty + ady[di];
+                if (!mapInBounds(nx, ny) || !mapPassable(nx, ny)) continue;
+                int dist = abs(nx - fx) + abs(ny - fy);
+                if (dist < bestDist) {
+                    bestDist = dist; *ox = nx; *oy = ny; *atTable = true;
+                }
+            }
+        }
+    }
 }
 
 // Does the dwarf have a bed nearby (in the bedroom zone)?
@@ -226,14 +241,24 @@ static void tickDwarf(int idx) {
             UNCLAIM_TASK();
             d.state    = DS_DRINKING;
             d.workLeft = DRINK_TICKS;
-            d.pathLen  = 0; d.pathPos = 0;
+            int destX, destY; bool atTable;
+            findMealDest(d.x, d.y, &destX, &destY, &atTable);
+            d.placeFurn = atTable;
+            int plen = pathFind(d.x, d.y, destX, destY, d.pathX, d.pathY, MAX_PATH_LEN);
+            d.pathLen = (plen > 0) ? (uint8_t)plen : 0;
+            d.pathPos = 0;
             return;
         }
         if (d.hunger >= HUNGER_THRESH && gFoodSupply > 0) {
             UNCLAIM_TASK();
             d.state    = DS_EATING;
             d.workLeft = EAT_TICKS;
-            d.pathLen  = 0; d.pathPos = 0;
+            int destX, destY; bool atTable;
+            findMealDest(d.x, d.y, &destX, &destY, &atTable);
+            d.placeFurn = atTable;
+            int plen = pathFind(d.x, d.y, destX, destY, d.pathX, d.pathY, MAX_PATH_LEN);
+            d.pathLen = (plen > 0) ? (uint8_t)plen : 0;
+            d.pathPos = 0;
             return;
         }
         if (d.fatigue >= FATIGUE_THRESH && d.state != DS_SLEEPING) {
@@ -505,8 +530,8 @@ static void tickDwarf(int idx) {
         if (t.type == TASK_DIG) {
             mapSet(t.x, t.y, TILE_FLOOR);
             mapDesignate(t.x, t.y, false);
-            // 50% chance to yield a stone boulder
-            if (random(0, 2) == 0) {
+            // 25% chance to yield a stone boulder
+            if (random(0, 4) == 0) {
                 mapAddItem(t.x, t.y, ITEM_STONE);
                 int sx, sy;
                 if (stockpileFindSlot(&sx, &sy)) taskAdd(TASK_HAUL, t.x, t.y, sx, sy);
@@ -662,22 +687,38 @@ static void tickDwarf(int idx) {
 
     // ---- EATING ----
     case DS_EATING: {
+        // Phase 1: walk to food source / dining table
+        if (d.pathPos < d.pathLen) { dwarfMove(idx); break; }
+        // Phase 2: eat
         if (d.workLeft > 0) { d.workLeft--; break; }
         if (gFoodSupply > 0) {
             gFoodSupply--;
             d.hunger = (uint8_t)max(0, (int)d.hunger - EAT_RESTORE);
+            // Bonus happiness for eating at a furnished table
+            if (d.placeFurn && d.happiness < MAX_HAPPINESS)
+                d.happiness = (uint8_t)min((int)MAX_HAPPINESS,
+                                           (int)d.happiness + EAT_HALL_HAPPINESS);
         }
+        d.placeFurn = false;
         d.state = DS_IDLE;
         break;
     }
 
     // ---- DRINKING ----
     case DS_DRINKING: {
+        // Phase 1: walk to drink source / dining table
+        if (d.pathPos < d.pathLen) { dwarfMove(idx); break; }
+        // Phase 2: drink
         if (d.workLeft > 0) { d.workLeft--; break; }
         if (gDrinkSupply > 0) {
             gDrinkSupply--;
             d.thirst = (uint8_t)max(0, (int)d.thirst - DRINK_RESTORE);
+            // Bonus happiness for drinking at a furnished table
+            if (d.placeFurn && d.happiness < MAX_HAPPINESS)
+                d.happiness = (uint8_t)min((int)MAX_HAPPINESS,
+                                           (int)d.happiness + EAT_HALL_HAPPINESS);
         }
+        d.placeFurn = false;
         d.state = DS_IDLE;
         break;
     }
@@ -689,7 +730,7 @@ static void tickDwarf(int idx) {
             int nx = d.pathX[d.pathPos], ny = d.pathY[d.pathPos];
             if (!mapPassable(nx, ny)) {
                 d.pathLen = 0; // path blocked, sleep in place
-            } else if (!dwarfAt(nx, ny, idx)) {
+            } else {
                 mapMarkDirty(d.x, d.y);
                 d.lastX = d.x; d.lastY = d.y;
                 d.x = (int8_t)nx; d.y = (int8_t)ny;

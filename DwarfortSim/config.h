@@ -64,8 +64,8 @@
 #define CRAFT_STONE_MUG_COST  1  // Stone consumed per mug (Mason)
 
 // --- Death ---------------------------------------------------------
-#define STARVE_TICKS      10     // Consecutive max-hunger ticks before death
-#define DEHYDRATE_TICKS    7     // Consecutive max-thirst ticks before death
+#define STARVE_TICKS      25     // Consecutive max-hunger ticks before death (longer — dwarves must walk to food)
+#define DEHYDRATE_TICKS   18     // Consecutive max-thirst ticks before death
 
 // --- Embark cart (items placed on surface at spawn) ----------------
 #define CART_WOOD          5     // Starting wood pieces in cart
@@ -134,6 +134,7 @@
 #define PRAYER_TICKS          30   // ticks per prayer session at shrine
 #define MAX_HAPPINESS         40   // max happiness value
 #define HAPPINESS_DECAY       80   // ticks between happiness -1
+#define EAT_HALL_HAPPINESS     2   // happiness gained per meal eaten at a furnished hall table
 
 // --- Fishing -------------------------------------------------------
 #define FISH_TICKS            15   // ticks per fishing attempt
@@ -262,6 +263,17 @@
 #define FORT_WS_FARM_Y1   15
 #define FORT_WS_FARM_X2   38
 #define FORT_WS_FARM_Y2   17
+
+// --- Workshop galleries (1-tile lateral corridors above/below the workshop rows)
+// Connects all north workshop rooms (y=10) and south workshop rooms (y=18)
+// so dwarves can reach any workshop from either direction.
+#define FORT_NGALLERY_X1   23    // above the north workshop row
+#define FORT_NGALLERY_X2   43    // reaches east end of farm rows
+#define FORT_NGALLERY_Y    10
+
+#define FORT_SGALLERY_X1   23    // below the south workshop row
+#define FORT_SGALLERY_X2   43
+#define FORT_SGALLERY_Y    18
 
 // --- Farm plots (3×3 each, become TILE_FARM) ---
 #define FORT_FARM1_X1     36
