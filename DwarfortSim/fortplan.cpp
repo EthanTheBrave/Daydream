@@ -867,8 +867,7 @@ static void manageBins() {
         for (int y = gStockY1; y <= gStockY2 && inStock > 0; y++) {
             for (int x = gStockX1; x <= gStockX2 && inStock > 0; x++) {
                 if (!mapInBounds(x,y)) continue;
-                if (mapGet(x,y) == TILE_FLOOR && gMap[y][x].item == ITEM_NONE
-                    && !taskExistsPlaceFurn(x, y)) {
+                if (mapGet(x,y) == TILE_FLOOR && !taskExistsPlaceFurn(x, y)) {
                     queuePlace(ITEM_BIN, x, y);
                     inStock--;
                 }
