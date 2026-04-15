@@ -100,7 +100,7 @@
 // --- Furnishing counts ---------------------------------------------
 #define HALL_TABLES        2
 #define HALL_CHAIRS        4
-#define BED_COUNT  6           // one bed per small room (3 north + 3 south)
+#define BED_COUNT  12          // one bed per small room (6 north + 6 south)
 
 // --- Season tracking -----------------------------------------------
 #define TICKS_PER_SEASON  1000   // ticks per in-game season (Spring/Summer/Autumn/Winter)

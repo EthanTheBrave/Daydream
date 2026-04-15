@@ -44,8 +44,8 @@ static void computeLayout() {
     sNY2 = sHY1 - 1;
     sNY1 = sNY2 - ncorrLen + 1;
 
-    // ---- Stockpile: 6 or 8 wide, 3 or 4 tall, above N corridor ----
-    int stockW = 6 + 2 * random(0, 2);
+    // ---- Stockpile: 10–14 wide, 3–4 tall, above N corridor ----
+    int stockW = 10 + 2 * random(0, 3);  // 10, 12, or 14 tiles — fills north space
     int stockH = 3 + random(0, 2);
     sPX1 = sHallCx - stockW / 2;
     sPX2 = sPX1 + stockW - 1;
@@ -62,10 +62,10 @@ static void computeLayout() {
     sSY1 = sHY2 + 1;
     sSY2 = sSY1 + scorrLen - 1;
 
-    // ---- Bedrooms: 3N + corridor + 3S, below S corridor ----
+    // ---- Bedrooms: 6N + corridor + 6S, below S corridor ----
     // Connecting passage aligns with sHallCx (= sBX1+3)
     sBX1 = sHallCx - 3;
-    sBX2 = sBX1 + 9;
+    sBX2 = sBX1 + 19;   // 20 tiles wide: 6 rooms each row
     sBY1 = sSY2 + 1;    // immediately below S corridor
     sBCY = sBY1 + 2;    // bedroom corridor row
     sBY2 = sBY1 + 4;
@@ -87,11 +87,11 @@ static void computeLayout() {
     gHallChairX[2] = (int8_t)(sHX2 - 2);      gHallChairY[2] = (int8_t)(sHY2 - 1);
     gHallChairX[3] = (int8_t)(sHX2 - 1);      gHallChairY[3] = (int8_t)(sHY2 - 2);
 
-    // ---- Bed positions (one per 2×2 room) ----
-    static const int kOff[3] = {0, 4, 7};
-    for (int i = 0; i < 3; i++) {
+    // ---- Bed positions (one per 2×2 room, 6N + 6S) ----
+    static const int kOff[6] = {0, 4, 7, 10, 14, 17};
+    for (int i = 0; i < 6; i++) {
         gBedX[i]   = (int8_t)(sBX1 + kOff[i]);  gBedY[i]   = (int8_t)sBY1;
-        gBedX[i+3] = (int8_t)(sBX1 + kOff[i]);  gBedY[i+3] = (int8_t)sBY2;
+        gBedX[i+6] = (int8_t)(sBX1 + kOff[i]);  gBedY[i+6] = (int8_t)sBY2;
     }
 }
 
@@ -1028,29 +1028,41 @@ void fortPlanTick() {
         strncpy(gStageName, "Bedrooms", sizeof(gStageName)-1);
         // 2-wide connecting passage from S. Corridor (between rooms 1 and 2)
         fortDesignateRect(sHallCx - 1, sBY1, sHallCx, sBCY - 1);
-        // East-west bedroom corridor
+        // East-west bedroom corridor (full width)
         fortDesignateRect(sBX1, sBCY, sBX2, sBCY);
-        // 3 north rooms (2×2 interior each; dividing walls stay solid)
-        fortDesignateRect(sBX1,   sBY1, sBX1+1, sBCY-1);
-        fortDesignateRect(sBX1+4, sBY1, sBX1+5, sBCY-1);
-        fortDesignateRect(sBX1+7, sBY1, sBX1+8, sBCY-1);
-        // 3 south rooms
-        fortDesignateRect(sBX1,   sBCY+1, sBX1+1, sBY2);
-        fortDesignateRect(sBX1+4, sBCY+1, sBX1+5, sBY2);
-        fortDesignateRect(sBX1+7, sBCY+1, sBX1+8, sBY2);
+        // 6 north rooms (2×2 interior each; dividing walls stay solid)
+        fortDesignateRect(sBX1,    sBY1, sBX1+1,  sBCY-1);
+        fortDesignateRect(sBX1+4,  sBY1, sBX1+5,  sBCY-1);
+        fortDesignateRect(sBX1+7,  sBY1, sBX1+8,  sBCY-1);
+        fortDesignateRect(sBX1+10, sBY1, sBX1+11, sBCY-1);
+        fortDesignateRect(sBX1+14, sBY1, sBX1+15, sBCY-1);
+        fortDesignateRect(sBX1+17, sBY1, sBX1+18, sBCY-1);
+        // 6 south rooms
+        fortDesignateRect(sBX1,    sBCY+1, sBX1+1,  sBY2);
+        fortDesignateRect(sBX1+4,  sBCY+1, sBX1+5,  sBY2);
+        fortDesignateRect(sBX1+7,  sBCY+1, sBX1+8,  sBY2);
+        fortDesignateRect(sBX1+10, sBCY+1, sBX1+11, sBY2);
+        fortDesignateRect(sBX1+14, sBCY+1, sBX1+15, sBY2);
+        fortDesignateRect(sBX1+17, sBCY+1, sBX1+18, sBY2);
         break;
 
     case FS_BEDROOMS: {
-        // Done when all 8 sub-rects are fully dug
+        // Done when all 14 sub-rects are fully dug
         int bedLeft = 0;
         bedLeft += fortCountRemainingDig(sHallCx - 1, sBY1, sHallCx, sBCY-1);
         bedLeft += fortCountRemainingDig(sBX1, sBCY, sBX2, sBCY);
-        bedLeft += fortCountRemainingDig(sBX1,   sBY1, sBX1+1, sBCY-1);
-        bedLeft += fortCountRemainingDig(sBX1+4, sBY1, sBX1+5, sBCY-1);
-        bedLeft += fortCountRemainingDig(sBX1+7, sBY1, sBX1+8, sBCY-1);
-        bedLeft += fortCountRemainingDig(sBX1,   sBCY+1, sBX1+1, sBY2);
-        bedLeft += fortCountRemainingDig(sBX1+4, sBCY+1, sBX1+5, sBY2);
-        bedLeft += fortCountRemainingDig(sBX1+7, sBCY+1, sBX1+8, sBY2);
+        bedLeft += fortCountRemainingDig(sBX1,    sBY1, sBX1+1,  sBCY-1);
+        bedLeft += fortCountRemainingDig(sBX1+4,  sBY1, sBX1+5,  sBCY-1);
+        bedLeft += fortCountRemainingDig(sBX1+7,  sBY1, sBX1+8,  sBCY-1);
+        bedLeft += fortCountRemainingDig(sBX1+10, sBY1, sBX1+11, sBCY-1);
+        bedLeft += fortCountRemainingDig(sBX1+14, sBY1, sBX1+15, sBCY-1);
+        bedLeft += fortCountRemainingDig(sBX1+17, sBY1, sBX1+18, sBCY-1);
+        bedLeft += fortCountRemainingDig(sBX1,    sBCY+1, sBX1+1,  sBY2);
+        bedLeft += fortCountRemainingDig(sBX1+4,  sBCY+1, sBX1+5,  sBY2);
+        bedLeft += fortCountRemainingDig(sBX1+7,  sBCY+1, sBX1+8,  sBY2);
+        bedLeft += fortCountRemainingDig(sBX1+10, sBCY+1, sBX1+11, sBY2);
+        bedLeft += fortCountRemainingDig(sBX1+14, sBCY+1, sBX1+15, sBY2);
+        bedLeft += fortCountRemainingDig(sBX1+17, sBCY+1, sBX1+18, sBY2);
         if (bedLeft > 0) break;
         mapSetRoomRect(sBX1, sBY1, sBX2, sBY2, ROOM_BEDROOM);
         // Skip furnishing — beds need the woodworker workshop. Dig east corridor next.
