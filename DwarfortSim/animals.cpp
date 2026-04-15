@@ -141,7 +141,7 @@ void animalsTick() {
     if (gFortStage >= FS_FURNISH_HALL && gTick % CAT_SPAWN_INTERVAL == 0)
         spawnAnimal(ANIMAL_CAT);
 
-    // Helper: butcher one sheep, add meat + bone, return true if done
+    // Helper: butcher one sheep, add meat, return true if done
     auto butcherOneSheep = [](const char* tickerMsg) -> bool {
         for (int i = 0; i < gNumAnimals; i++) {
             if (!gAnimals[i].active || gAnimals[i].type != ANIMAL_SHEEP) continue;
@@ -151,10 +151,6 @@ void animalsTick() {
             {
                 gFoodSupply += SHEEP_MEAT_FOOD;
             }
-            mapAddItem(a.x, a.y, ITEM_BONE);
-            int bsx, bsy;
-            if (stockpileFindSlot(&bsx, &bsy, ITEM_BONE))
-                taskAdd(TASK_HAUL, a.x, a.y, bsx, bsy);
             Serial.println("Sheep harvested for meat");
             tickerPush(tickerMsg);
             return true;

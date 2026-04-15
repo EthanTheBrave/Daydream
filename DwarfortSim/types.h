@@ -61,7 +61,6 @@ enum ItemType : uint8_t {
     ITEM_DOOR_I   = 11,  // '+'  crafted door (before placing)
     ITEM_MUSHROOM = 12,  // 'm'  fresh mushroom (farmable ingredient)
     ITEM_BEER     = 13,  // 'U'  brewed beer (acts as drink supply)
-    ITEM_BONE     = 14,  // 'b'  bone fragment (drops from goblins, used in kitchen)
     ITEM_BIN      = 15,  // 'B'  storage bin item (placed → TILE_BIN)
     ITEM_SHRINE   = 16,  // shrine item (placed → TILE_SHRINE)
 };
@@ -91,7 +90,6 @@ enum CraftType : uint8_t {
     CRAFT_BED            = 5,
     CRAFT_MUSHROOM_FOOD  = 6,  // Kitchen: 2 mushrooms → food supply (+3)
     CRAFT_MUSHROOM_BEER  = 7,  // Still:   2 mushrooms → drink supply (+3)
-    CRAFT_BONE_BROTH     = 8,  // Kitchen: 2 bones → food supply (+3)
     CRAFT_STONE_MUG      = 9,  // Mason:   1 stone → 1 empty barrel
     CRAFT_BIN            = 10, // Woodworker: 1 wood → 1 storage bin
     CRAFT_SHRINE         = 11, // Mason:   2 stone → 1 shrine (placed → TILE_SHRINE)
@@ -117,12 +115,6 @@ inline uint8_t craftMushroomCost(CraftType ct) {
     return 0;
 }
 
-// Bone cost (for CRAFT_BONE_BROTH)
-inline uint8_t craftBoneCost(CraftType ct) {
-    if (ct == CRAFT_BONE_BROTH) return 2;
-    return 0;
-}
-
 // Stone cost (for CRAFT_STONE_MUG and CRAFT_SHRINE)
 inline uint8_t craftStoneCost(CraftType ct) {
     if (ct == CRAFT_STONE_MUG)  return CRAFT_STONE_MUG_COST;
@@ -140,7 +132,6 @@ inline ItemType craftProduct(CraftType ct) {
         case CRAFT_BED:           return ITEM_BED_I;
         case CRAFT_MUSHROOM_FOOD: return ITEM_FOOD;   // not actually placed; supply added directly
         case CRAFT_MUSHROOM_BEER: return ITEM_BEER;   // not actually placed; supply added directly
-        case CRAFT_BONE_BROTH:    return ITEM_FOOD;   // not actually placed; supply added directly
         case CRAFT_STONE_MUG:     return ITEM_BARREL;
         case CRAFT_BIN:           return ITEM_BIN;
         case CRAFT_SHRINE:        return ITEM_SHRINE;

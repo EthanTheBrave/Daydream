@@ -91,11 +91,6 @@ static void moveGoblin(int idx) {
     g.despawnTimer--;
     if (g.despawnTimer == 0) {
         g.active = false; mapMarkDirty(g.x,g.y);
-        if (random(0, 2) == 0) {
-            mapAddItem(g.x, g.y, ITEM_BONE);
-            int bsx, bsy;
-            if (stockpileFindSlot(&bsx, &bsy, ITEM_BONE)) taskAdd(TASK_HAUL, g.x, g.y, bsx, bsy);
-        }
         return;
     }
 
@@ -116,14 +111,8 @@ static void moveGoblin(int idx) {
         // Also drain supply (goblin ransacks food)
         gFoodSupply  = max(0, gFoodSupply  - 3);
         gDrinkSupply = max(0, gDrinkSupply - 3);
-        // Goblin despawns after a successful attack, dropping bones
         g.active = false;
         mapMarkDirty(g.x, g.y);
-        if (random(0, 2) == 0) {
-            mapAddItem(g.x, g.y, ITEM_BONE);
-            int bsx, bsy;
-            if (stockpileFindSlot(&bsx, &bsy, ITEM_BONE)) taskAdd(TASK_HAUL, g.x, g.y, bsx, bsy);
-        }
 
         // Blood on the attack tile
         mapAddBlood(target.x, target.y);

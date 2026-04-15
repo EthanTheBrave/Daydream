@@ -61,7 +61,6 @@ All glyphs use CP437 encoding on a 320×240 TFT display (53 columns × 29 rows, 
 | `u` | Cyan | Drink (water barrel) |
 | `U` | Cyan | Beer |
 | `m` | Purple | Mushroom |
-| `b` | White | Bone |
 | `O` | Brown | Barrel |
 | `[` | Cyan | Bed (unplaced, in stockpile) |
 | `n` | Brown | Table (unplaced) |

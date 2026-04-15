@@ -831,35 +831,10 @@ static void manageBins() {
     int placed  = mapCountTileInRect(gStockX1, gStockY1, gStockX2, gStockY2, TILE_BIN);
     int inStock = mapCountItemGlobal(ITEM_BIN);
 
-    if (!taskExistsCraft(CRAFT_BIN) && mapCountItemGlobal(ITEM_WOOD) >= 2) {
-        bool generalCap = (placed + inStock < 6);
-
-        // Also craft if bones exist but no bin has room for them and stockpile isn't full
-        bool needBinForBones = false;
-        if (mapCountItemGlobal(ITEM_BONE) > 0) {
-            bool boneBinAvail = false;
-            for (int y = gStockY1; y <= gStockY2 && !boneBinAvail; y++) {
-                for (int x = gStockX1; x <= gStockX2 && !boneBinAvail; x++) {
-                    if (!mapInBounds(x, y)) continue;
-                    if (gMap[y][x].type != TILE_BIN) continue;
-                    if (gMap[y][x].item != ITEM_NONE && gMap[y][x].item != ITEM_BONE) continue;
-                    if (gMap[y][x].itemCount < BIN_CAPACITY) boneBinAvail = true;
-                }
-            }
-            if (!boneBinAvail) {
-                // Only worth crafting if the stockpile has a free floor tile to place it
-                for (int y = gStockY1; y <= gStockY2 && !needBinForBones; y++)
-                    for (int x = gStockX1; x <= gStockX2 && !needBinForBones; x++)
-                        if (mapInBounds(x,y) && mapGet(x,y) == TILE_FLOOR
-                                && gMap[y][x].item == ITEM_NONE)
-                            needBinForBones = true;
-            }
-        }
-
-        if (generalCap || needBinForBones) {
-            int ti = taskAdd(TASK_CRAFT, wx, wy);
-            if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_BIN;
-        }
+    if (!taskExistsCraft(CRAFT_BIN) && mapCountItemGlobal(ITEM_WOOD) >= 2
+        && placed + inStock < 6) {
+        int ti = taskAdd(TASK_CRAFT, wx, wy);
+        if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_BIN;
     }
     // Place any unplaced bins in stockpile
     if (inStock > 0) {
@@ -1108,17 +1083,6 @@ void fortPlanTick() {
         manageFarms();
         manageMushProcessing();
         manageBins();
-        // Queue bone broth at kitchen if food low and bones available
-        if (gFoodSupply < 100
-            && mapCountItemGlobal(ITEM_BONE) >= 2
-            && !taskExistsCraft(CRAFT_BONE_BROTH)) {
-            int kx = (FORT_WS_KITCH_X1+FORT_WS_KITCH_X2)/2;
-            int ky = (FORT_WS_KITCH_Y1+FORT_WS_KITCH_Y2)/2;
-            if (mapPassable(kx, ky)) {
-                int ti = taskAdd(TASK_CRAFT, kx, ky);
-                if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_BONE_BROTH;
-            }
-        }
         // Queue stone mugs at mason if stone available
         if (mapCountItemGlobal(ITEM_STONE) >= CRAFT_STONE_MUG_COST
             && !taskExistsCraft(CRAFT_STONE_MUG)) {

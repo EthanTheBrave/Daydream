@@ -148,7 +148,6 @@ static void tileVisual(int x, int y, char* ch, uint16_t* fg, uint16_t* bg) {
             case ITEM_DOOR_I:   *ch = '+'; *fg = C_BROWN;      return;
             case ITEM_MUSHROOM: *ch = 'm'; *fg = C_PURPLE;     return;
             case ITEM_BEER:     *ch = 'U'; *fg = C_CYAN;       return;
-            case ITEM_BONE:     *ch = 'b'; *fg = C_WHITE;      return;
             case ITEM_BIN:      *ch = 'B'; *fg = C_BROWN;      return;
             case ITEM_SHRINE:   *ch = '\x0F'; *fg = C_YELLOW;  return;  // sun glyph (CP437 ☼)
             default: break;
@@ -248,7 +247,6 @@ static void tileVisual(int x, int y, char* ch, uint16_t* fg, uint16_t* bg) {
                 switch (t.item) {
                     case ITEM_STONE:    *ch = '*'; *fg = C_ORANGE; break;
                     case ITEM_WOOD:     *ch = '/'; *fg = C_BROWN;  break;
-                    case ITEM_BONE:     *ch = 'b'; *fg = C_WHITE;  break;
                     case ITEM_MUSHROOM: *ch = 'm'; *fg = C_PURPLE; break;
                     default:            *ch = 'B'; *fg = C_BROWN;  break;
                 }
