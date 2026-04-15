@@ -633,6 +633,10 @@ static void tickDwarf(int idx) {
 
         // --- BURY (phase 1: pick up corpse) ---
         } else if (t.type == TASK_BURY) {
+            // Wait until the tomb slot is dug out and passable
+            if (!mapPassable(t.destX, t.destY)) {
+                taskUnclaim(d.taskIdx); d.taskIdx=-1; d.state=DS_IDLE; break;
+            }
             // Consume a coffin from stockpile
             if (!mapConsumeFromStockpile(ITEM_COFFIN, 1)) {
                 taskUnclaim(d.taskIdx); d.taskIdx=-1; d.state=DS_IDLE; break;
@@ -643,6 +647,13 @@ static void tickDwarf(int idx) {
                 d.placeFurn = true; // will place as TILE_COFFIN_T at dest
                 int plen = pathFind(d.x, d.y, t.destX, t.destY,
                                     d.pathX, d.pathY, MAX_PATH_LEN);
+                if (plen == 0) {
+                    // No path — put coffin back and retry next tick
+                    mapAddItem(t.x, t.y, ITEM_CORPSE);
+                    int sx, sy;
+                    if (stockpileFindSlot(&sx, &sy)) mapAddItem(sx, sy, ITEM_COFFIN);
+                    taskUnclaim(d.taskIdx); d.taskIdx=-1; d.state=DS_IDLE; break;
+                }
                 d.pathLen=(uint8_t)plen; d.pathPos=0;
                 d.state = DS_HAULING;
                 break;
@@ -669,6 +680,7 @@ static void tickDwarf(int idx) {
                 // Lay to rest
                 mapSet(d.x, d.y, TILE_COFFIN_T);
                 gMap[d.y][d.x].roomType = ROOM_TOMB;
+                gDeadUnburied = max(0, gDeadUnburied - 1);
             } else {
                 mapAddItem(d.x, d.y, d.carrying);
             }

@@ -221,7 +221,7 @@ void fortNotifyDeath(int corpseX, int corpseY) {
         queueCraftAt(CRAFT_COFFIN, wx, wy);
     }
 
-    int slot = gTombSlotUsed;
+    int slot = gTombSlotUsed++;
     int cols  = (TOMB_X2 - TOMB_X1 - 1) / 2 + 1;
     int col   = slot % cols;
     int row   = slot / cols;
