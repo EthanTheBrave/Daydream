@@ -635,7 +635,7 @@ static void manageFarms() {
                 if (gMap[y][x].item != ITEM_NONE) continue;
                 mapAddItem(x, y, ITEM_MUSHROOM);
                 int sx, sy;
-                if (stockpileFindSlot(&sx, &sy)) taskAdd(TASK_HAUL, x, y, sx, sy);
+                if (stockpileFindSlot(&sx, &sy, ITEM_MUSHROOM)) taskAdd(TASK_HAUL, x, y, sx, sy);
                 // Only grow one per farm per grow tick to pace it
                 goto nextFarm;
             }
@@ -656,15 +656,14 @@ static void manageMushProcessing() {
     int sx = (FORT_WS_STILL_X1+FORT_WS_STILL_X2)/2;
     int sy = (FORT_WS_STILL_Y1+FORT_WS_STILL_Y2)/2;
 
-    // Queue Kitchen cooking when food drops below 150 — start early so
-    // mushroom stocks can be converted to food reserves before winter.
-    if (gFoodSupply < 150 && !taskExistsCraft(CRAFT_MUSHROOM_FOOD)
+    // Queue Kitchen cooking when food drops below 500
+    if (gFoodSupply < 500 && !taskExistsCraft(CRAFT_MUSHROOM_FOOD)
         && mapPassable(kx, ky)) {
         int ti = taskAdd(TASK_CRAFT, kx, ky);
         if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_MUSHROOM_FOOD;
     }
-    // Queue Still brewing when drink drops below 150
-    if (gDrinkSupply < 150 && !taskExistsCraft(CRAFT_MUSHROOM_BEER)
+    // Queue Still brewing when drink drops below 500
+    if (gDrinkSupply < 500 && !taskExistsCraft(CRAFT_MUSHROOM_BEER)
         && mapPassable(sx, sy)) {
         int ti = taskAdd(TASK_CRAFT, sx, sy);
         if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_MUSHROOM_BEER;
