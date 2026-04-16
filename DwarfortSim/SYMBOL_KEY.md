@@ -68,6 +68,9 @@ All glyphs use CP437 encoding on a 320×240 TFT display (53 columns × 29 rows, 
 | `+` | Brown | Door (unplaced) |
 | `\|` | Grey | Coffin (unplaced) |
 | `☻` (CP437 02) | Dark grey | Corpse item (awaiting burial) |
+| `i` | Dark grey | Iron ore chunk |
+| `a` | Cyan | Iron axe (unequipped, in stockpile) |
+| `A` | Cyan | Iron armor set (unequipped, in stockpile) |
 
 ---
 
@@ -80,7 +83,7 @@ Excavated floor tiles inherit a subtle background colour from their room type:
 | Dim blue-grey | Main hall |
 | Dim red-brown | Stockpile |
 | Dim blue | Bedroom |
-| Red | Workshop |
+| Dim amber-brown | Workshop |
 | Dim green | Farm |
 | Dim purple | Tomb |
 | Dim teal | Barracks |

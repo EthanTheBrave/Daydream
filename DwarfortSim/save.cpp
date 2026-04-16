@@ -34,6 +34,7 @@ struct SaveDwarf {
     uint8_t combatSkill;
     uint8_t happiness;
     uint8_t active, dead;
+    uint8_t hasAxe, hasArmor;
     char    name[10];
 };
 
@@ -188,6 +189,8 @@ bool saveGame() {
         sd.happiness   = d.happiness;
         sd.active      = d.active ? 1 : 0;
         sd.dead        = d.dead   ? 1 : 0;
+        sd.hasAxe      = d.hasAxe   ? 1 : 0;
+        sd.hasArmor    = d.hasArmor ? 1 : 0;
         memcpy(sd.name, d.name, 10);
         SW(sd);
     }
@@ -285,8 +288,10 @@ bool loadGame() {
         d.combatSkill  = sd.combatSkill;
         d.happiness    = sd.happiness;
         d.pathLen      = 0; d.pathPos = 0; d.blockedCount = 0;
-        d.active       = sd.active != 0;
-        d.dead         = sd.dead   != 0;
+        d.active       = sd.active  != 0;
+        d.dead         = sd.dead    != 0;
+        d.hasAxe       = sd.hasAxe  != 0;
+        d.hasArmor     = sd.hasArmor != 0;
         memcpy(d.name, sd.name, 10);
     }
 

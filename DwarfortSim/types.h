@@ -63,6 +63,9 @@ enum ItemType : uint8_t {
     ITEM_BEER     = 13,  // 'U'  brewed beer (acts as drink supply)
     ITEM_BIN      = 15,  // 'B'  storage bin item (placed → TILE_BIN)
     ITEM_SHRINE   = 16,  // shrine item (placed → TILE_SHRINE)
+    ITEM_IRON_ORE = 17,  // 'i'  iron ore chunk (mined, smelted into weapons/armor)
+    ITEM_AXE      = 18,  // 'a'  iron axe (auto-equipped; dwarf counter-attacks goblins)
+    ITEM_ARMOR    = 19,  // 'A'  iron armor (auto-equipped; reduces incoming goblin damage)
 };
 
 // ----------------------------------------------------------------
@@ -93,6 +96,8 @@ enum CraftType : uint8_t {
     CRAFT_STONE_MUG      = 9,  // Mason:   1 stone → 1 empty barrel
     CRAFT_BIN            = 10, // Woodworker: 1 wood → 1 storage bin
     CRAFT_SHRINE         = 11, // Mason:   2 stone → 1 shrine (placed → TILE_SHRINE)
+    CRAFT_AXE            = 12, // Forge:   2 iron ore → 1 axe (auto-equipped)
+    CRAFT_ARMOR          = 13, // Forge:   3 iron ore → 1 armor set (auto-equipped)
 };
 
 inline uint8_t craftWoodCost(CraftType ct) {
@@ -122,6 +127,13 @@ inline uint8_t craftStoneCost(CraftType ct) {
     return 0;
 }
 
+// Iron ore cost (for CRAFT_AXE and CRAFT_ARMOR)
+inline uint8_t craftIronCost(CraftType ct) {
+    if (ct == CRAFT_AXE)   return CRAFT_IRON_AXE_COST;
+    if (ct == CRAFT_ARMOR) return CRAFT_IRON_ARMOR_COST;
+    return 0;
+}
+
 inline ItemType craftProduct(CraftType ct) {
     switch (ct) {
         case CRAFT_TABLE:         return ITEM_TABLE_I;
@@ -135,6 +147,8 @@ inline ItemType craftProduct(CraftType ct) {
         case CRAFT_STONE_MUG:     return ITEM_BARREL;
         case CRAFT_BIN:           return ITEM_BIN;
         case CRAFT_SHRINE:        return ITEM_SHRINE;
+        case CRAFT_AXE:           return ITEM_AXE;
+        case CRAFT_ARMOR:         return ITEM_ARMOR;
         default:                  return ITEM_STONE;
     }
 }
@@ -227,6 +241,8 @@ struct Dwarf {
     uint8_t    blockedCount; // ticks spent blocked on current path step; triggers re-path at 5
     bool       active;
     bool       dead;
+    bool       hasAxe;    // equipped iron axe — counter-attacks goblins
+    bool       hasArmor;  // equipped iron armor — reduces incoming damage
     char       name[10];
 };
 

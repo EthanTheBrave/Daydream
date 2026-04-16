@@ -48,7 +48,7 @@ extern TFT_eSPI tft;
 #define BG_HALL      0x0821  // dim blue-grey
 #define BG_STOCKPILE 0x1800  // dim red-brown
 #define BG_BEDROOM   0x0010  // dim blue
-#define BG_WORKSHOP  0x8000  // red — workshops clearly distinct from floor
+#define BG_WORKSHOP  0x3180  // dim amber-brown — workshops distinct but not alarming
 #define BG_FARM      0x0200  // dim green (soil)
 #define BG_TOMB      0x1010  // dim purple
 #define BG_BARRACKS  0x0421  // dim teal — training area
@@ -150,6 +150,9 @@ static void tileVisual(int x, int y, char* ch, uint16_t* fg, uint16_t* bg) {
             case ITEM_BEER:     *ch = 'U'; *fg = C_CYAN;       return;
             case ITEM_BIN:      *ch = 'B'; *fg = C_BROWN;      return;
             case ITEM_SHRINE:   *ch = '\x0F'; *fg = C_YELLOW;  return;  // sun glyph (CP437 ☼)
+            case ITEM_IRON_ORE: *ch = 'i'; *fg = C_DARK_GRAY;  return;
+            case ITEM_AXE:      *ch = 'a'; *fg = C_CYAN;        return;
+            case ITEM_ARMOR:    *ch = 'A'; *fg = C_CYAN;        return;
             default: break;
         }
     }
@@ -259,17 +262,20 @@ static void tileVisual(int x, int y, char* ch, uint16_t* fg, uint16_t* bg) {
             *ch = ' '; *fg = C_BLACK;      *bg = C_BLACK;     break;
     }
 
-    // Blood overlay: tint background red on tiles with spilled blood.
-    // Walls don't show blood (no visible floor surface).
-    if (t.blood > 0 && t.type != TILE_WALL) {
-        *bg = (t.blood > BLOOD_FADE_TICKS / 2) ? C_BLOOD_FRESH : C_BLOOD_DRY;
-    }
 }
 
 // ----------------------------------------------------------------
 static void drawCell(int x, int y) {
     char ch; uint16_t fg, bg;
     tileVisual(x, y, &ch, &fg, &bg);
+
+    // Blood overlay applied here so it shows even under entities/items
+    {
+        const Tile& t = gMap[y][x];
+        if (t.blood > 0 && t.revealed && t.type != TILE_WALL) {
+            bg = (t.blood > BLOOD_FADE_TICKS / 2) ? C_BLOOD_FRESH : C_BLOOD_DRY;
+        }
+    }
 
     if (ch == sDispCh[y][x] && fg == sDispFg[y][x] && bg == sDispBg[y][x]) return;
 

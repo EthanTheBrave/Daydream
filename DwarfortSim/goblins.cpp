@@ -27,28 +27,13 @@ static void spawnGoblinWave(int count) {
         }
         if (slot < 0) return;
 
-        // Spawn at right edge or top/bottom edge (outside the map view)
+        // Spawn at the west (surface) edge — goblins come from outside the fort
         int x, y;
-        int edge = random(0, 3); // 0=right, 1=top, 2=bottom
-        if (edge == 0) {
-            x = MAP_W - 1;
-            y = random(1, MAP_H - 1);
-        } else if (edge == 1) {
-            x = random(HILL_START_X, MAP_W - 1);
-            y = 0;
-        } else {
-            x = random(HILL_START_X, MAP_W - 1);
-            y = MAP_H - 1;
-        }
-
-        // Snap to a passable tile nearby
         bool placed = false;
-        for (int tries = 0; tries < 20 && !placed; tries++) {
-            int tx = x + random(-2, 3);
-            int ty = y + random(-2, 3);
-            if (mapInBounds(tx, ty) && mapPassable(tx, ty)) {
-                x = tx; y = ty; placed = true;
-            }
+        for (int tries = 0; tries < 30 && !placed; tries++) {
+            x = random(0, HILL_START_X);     // surface columns only
+            y = random(1, MAP_H - 2);
+            if (mapInBounds(x, y) && mapPassable(x, y)) placed = true;
         }
         if (!placed) continue;
 
@@ -105,12 +90,27 @@ static void moveGoblin(int idx) {
         // Combat skill reduces damage (0 skill = full, max skill = 25% damage)
         int damage = GOBLIN_ATTACK_DAMAGE - (target.combatSkill * GOBLIN_ATTACK_DAMAGE / (COMBAT_SKILL_MAX * 4 / 3));
         if (damage < GOBLIN_ATTACK_DAMAGE / 4) damage = GOBLIN_ATTACK_DAMAGE / 4;
+        // Iron armor reduces incoming damage
+        if (target.hasArmor) damage = damage * (100 - ARMOR_DAMAGE_REDUCTION_PCT) / 100;
         // Injure the dwarf — spike hunger and thirst to simulate wounding
         target.hunger  = min(100, (int)target.hunger  + damage);
         target.thirst  = min(100, (int)target.thirst  + damage);
         // Also drain supply (goblin ransacks food)
         gFoodSupply  = max(0, gFoodSupply  - 3);
         gDrinkSupply = max(0, gDrinkSupply - 3);
+        // Iron axe: dwarf counter-attacks, heavily damaging the goblin
+        if (target.hasAxe) {
+            g.despawnTimer = (g.despawnTimer > AXE_COUNTER_DESPAWN)
+                             ? g.despawnTimer - AXE_COUNTER_DESPAWN : 0;
+            if (g.despawnTimer == 0) {
+                g.active = false; mapMarkDirty(g.x, g.y);
+                mapAddBlood(g.x, g.y);
+                char kbuf[53];
+                snprintf(kbuf, sizeof(kbuf), "%s slays a goblin with their axe!", target.name);
+                tickerPush(kbuf);
+                return;
+            }
+        }
         g.active = false;
         mapMarkDirty(g.x, g.y);
 
@@ -201,10 +201,10 @@ void goblinsTick() {
             uint32_t scaleLevel = seasons / GOBLIN_SCALE_SEASON;
             if (scaleLevel != sLastScaleSeason) {
                 sLastScaleSeason = scaleLevel;
-                uint32_t newInterval = GOBLIN_AMBUSH_INTERVAL
-                                       - (uint32_t)(scaleLevel * 100);
-                if (newInterval < GOBLIN_AMBUSH_MIN_INTERVAL || newInterval > GOBLIN_AMBUSH_INTERVAL)
-                    newInterval = GOBLIN_AMBUSH_MIN_INTERVAL;
+                uint32_t reduction    = (uint32_t)(scaleLevel * 100);
+                uint32_t newInterval = (reduction < GOBLIN_AMBUSH_INTERVAL - GOBLIN_AMBUSH_MIN_INTERVAL)
+                                       ? GOBLIN_AMBUSH_INTERVAL - reduction
+                                       : GOBLIN_AMBUSH_MIN_INTERVAL;
                 sAmbushInterval = newInterval;
                 sWaveBonus      = (int)scaleLevel;
             }

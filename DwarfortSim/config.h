@@ -51,6 +51,13 @@
 #define STATUS_BAR_Y     232     // Pixel Y of status bar (TICKER_BAR_Y + TICKER_BAR_H)
 #define STATUS_BAR_H       8     // Pixels tall for status bar — 232+8=240px total
 
+// --- Iron ore & equipment ------------------------------------------
+#define IRON_ORE_CHANCE_PCT   15   // % chance per mined tile to yield iron ore
+#define CRAFT_IRON_AXE_COST    2   // Iron ore per axe
+#define CRAFT_IRON_ARMOR_COST  3   // Iron ore per armor set
+#define ARMOR_DAMAGE_REDUCTION_PCT  35  // % incoming goblin damage blocked by armor
+#define AXE_COUNTER_DESPAWN    80   // despawnTimer reduced on goblin when axe-wielder is attacked
+
 // --- Crafting ------------------------------------------------------
 #define CRAFT_TICKS       10     // Ticks to craft one item at workshop
 #define CRAFT_WOOD_TABLE   2     // Wood cost per table

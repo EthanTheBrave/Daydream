@@ -1114,6 +1114,60 @@ void fortPlanTick() {
                 if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_BARREL;
             }
         }
+        // Forge: craft axes and armor from iron ore
+        {
+            int fx = (FORT_WS_FORGE_X1+FORT_WS_FORGE_X2)/2;
+            int fy = (FORT_WS_FORGE_Y1+FORT_WS_FORGE_Y2)/2;
+            if (mapPassable(fx, fy)) {
+                // Count dwarves without axes
+                int axeNeeded = 0;
+                for (int i = 0; i < gNumDwarves; i++)
+                    if (gDwarves[i].active && !gDwarves[i].dead && !gDwarves[i].hasAxe)
+                        axeNeeded++;
+                if (axeNeeded > 0 && !taskExistsCraft(CRAFT_AXE)
+                    && mapCountItemGlobal(ITEM_IRON_ORE) >= CRAFT_IRON_AXE_COST) {
+                    int ti = taskAdd(TASK_CRAFT, fx, fy);
+                    if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_AXE;
+                }
+                // Count dwarves without armor
+                int armorNeeded = 0;
+                for (int i = 0; i < gNumDwarves; i++)
+                    if (gDwarves[i].active && !gDwarves[i].dead && !gDwarves[i].hasArmor)
+                        armorNeeded++;
+                if (armorNeeded > 0 && !taskExistsCraft(CRAFT_ARMOR)
+                    && mapCountItemGlobal(ITEM_IRON_ORE) >= CRAFT_IRON_ARMOR_COST) {
+                    int ti = taskAdd(TASK_CRAFT, fx, fy);
+                    if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_ARMOR;
+                }
+            }
+            // Auto-equip: if an axe/armor item reached the stockpile, assign to a dwarf
+            if (mapCountItemGlobal(ITEM_AXE) > 0) {
+                for (int i = 0; i < gNumDwarves; i++) {
+                    if (gDwarves[i].active && !gDwarves[i].dead && !gDwarves[i].hasAxe) {
+                        if (mapConsumeFromStockpile(ITEM_AXE, 1)) {
+                            gDwarves[i].hasAxe = true;
+                            char buf[53];
+                            snprintf(buf, sizeof(buf), "%s equips an iron axe.", gDwarves[i].name);
+                            tickerPush(buf);
+                        }
+                        break;
+                    }
+                }
+            }
+            if (mapCountItemGlobal(ITEM_ARMOR) > 0) {
+                for (int i = 0; i < gNumDwarves; i++) {
+                    if (gDwarves[i].active && !gDwarves[i].dead && !gDwarves[i].hasArmor) {
+                        if (mapConsumeFromStockpile(ITEM_ARMOR, 1)) {
+                            gDwarves[i].hasArmor = true;
+                            char buf[53];
+                            snprintf(buf, sizeof(buf), "%s dons iron armor.", gDwarves[i].name);
+                            tickerPush(buf);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
         // Season tracking — update stage name; ticker handled globally above.
         {
             static const char* kSeasons[] = {"Spring","Summer","Autumn","Winter"};

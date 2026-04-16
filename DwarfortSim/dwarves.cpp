@@ -39,6 +39,8 @@ static void initOneDwarf(int idx, int spawnX, int spawnY) {
     d.carrying    = ITEM_NONE;
     d.placeFurn   = false;
     d.combatSkill = 0;
+    d.hasAxe      = false;
+    d.hasArmor    = false;
     strncpy(d.name, kNames[gNameIdx % 20], 9);
     gNameIdx++;
     mapMarkDirty(d.x, d.y);
@@ -332,7 +334,7 @@ static void tickDwarf(int idx) {
                 if (plen == 0) plen = 1; // already nearby
             } else if (t.type == TASK_CRAFT) {
                 CraftType ct = (CraftType)t.auxType;
-                if (craftWoodCost(ct) > 0 || craftStoneCost(ct) > 0) {
+                if (craftWoodCost(ct) > 0 || craftStoneCost(ct) > 0 || craftIronCost(ct) > 0) {
                     // Fetch material from stockpile first
                     int sx = (gStockX1+gStockX2)/2, sy = (gStockY1+gStockY2)/2;
                     plen = pathFind(d.x, d.y, sx, sy, d.pathX, d.pathY, MAX_PATH_LEN);
@@ -427,7 +429,8 @@ static void tickDwarf(int idx) {
         Task& ft = gTasks[d.taskIdx];
         CraftType fct = (CraftType)ft.auxType;
         int woodCost  = craftWoodCost(fct);
-        ItemType need = (woodCost > 0) ? ITEM_WOOD : ITEM_STONE;
+        int ironCost  = craftIronCost(fct);
+        ItemType need = (woodCost > 0) ? ITEM_WOOD : (ironCost > 0) ? ITEM_IRON_ORE : ITEM_STONE;
 
         int ix = -1, iy = -1;
         for (int sy2 = gStockY1; sy2 <= gStockY2 && ix < 0; sy2++)
@@ -529,6 +532,12 @@ static void tickDwarf(int idx) {
         if (t.type == TASK_DIG) {
             mapSet(t.x, t.y, TILE_FLOOR);
             mapDesignate(t.x, t.y, false);
+            // 15% chance to yield iron ore (independent of stone)
+            if (random(0, 100) < IRON_ORE_CHANCE_PCT) {
+                mapAddItem(t.x, t.y, ITEM_IRON_ORE);
+                int sx, sy;
+                if (stockpileFindSlot(&sx, &sy, ITEM_IRON_ORE)) taskAdd(TASK_HAUL, t.x, t.y, sx, sy);
+            }
             // 25% chance to yield a stone boulder
             if (random(0, 4) == 0) {
                 mapAddItem(t.x, t.y, ITEM_STONE);
@@ -568,6 +577,7 @@ static void tickDwarf(int idx) {
             CraftType ct   = (CraftType)t.auxType;
             int mushCost   = craftMushroomCost(ct);
             int woodCost   = craftWoodCost(ct);
+            int ironCost   = craftIronCost(ct);
             if (mushCost > 0) {
                 // Mushroom processing (Kitchen / Still)
                 if (!mapConsumeFromStockpile(ITEM_MUSHROOM, mushCost)) {
@@ -589,6 +599,9 @@ static void tickDwarf(int idx) {
                     taskUnclaim(d.taskIdx); d.taskIdx=-1; d.state=DS_IDLE; break;
                 }
                 if (stoneCost2 > 1 && !mapConsumeFromStockpile(ITEM_STONE, stoneCost2 - 1)) {
+                    taskUnclaim(d.taskIdx); d.taskIdx=-1; d.state=DS_IDLE; break;
+                }
+                if (ironCost > 1 && !mapConsumeFromStockpile(ITEM_IRON_ORE, ironCost - 1)) {
                     taskUnclaim(d.taskIdx); d.taskIdx=-1; d.state=DS_IDLE; break;
                 }
                 ItemType product = craftProduct(ct);
