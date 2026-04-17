@@ -1,0 +1,83 @@
+Seed: 1776014733
+T=   0  Stage: Arriving
+T=   6  Stage: Digging Entrance        alive=7
+T= 277  Stage: Digging Main Hall       alive=7
+Migrant arrived: Udib
+  [T= 500] alive=8 idle=1 train=0  dig=36 chop=1 haul=23 craft=0  wood=9 stone=8 food=198 drink=199  skill=0-0
+Sheep harvested for meat
+T= 909  Stage: N. Corridor             alive=8
+  [T=1000] alive=8 idle=1 train=0  dig=8 chop=1 haul=10 craft=0  wood=9 stone=27 food=200 drink=199  skill=0-0
+Migrant arrived: Rigoth
+Migrant arrived: Onget
+T=1397  Stage: Stockpile Room          alive=10
+Sheep harvested for meat
+  [T=1500] alive=10 idle=2 train=0  dig=30 chop=0 haul=4 craft=0  wood=10 stone=33 food=125 drink=198  skill=0-0
+T=1888  Stage: S. Corridor             alive=10
+Migrant arrived: Kadol
+  [T=2000] alive=11 idle=2 train=0  dig=4 chop=0 haul=15 craft=0  wood=10 stone=51 food=200 drink=198  skill=0-0
+Sheep harvested for meat
+T=2353  Stage: Bedrooms                alive=11
+  [T=2500] alive=11 idle=2 train=0  dig=36 chop=0 haul=1 craft=0  wood=10 stone=53 food=189 drink=198  skill=0-0
+Migrant arrived: Vucar
+Sheep harvested for meat
+  [T=3000] alive=12 idle=2 train=0  dig=15 chop=0 haul=1 craft=0  wood=10 stone=64 food=200 drink=198  skill=0-0
+Sheep harvested for meat
+  [T=3500] alive=12 idle=2 train=0  dig=6 chop=0 haul=2 craft=0  wood=10 stone=67 food=50 drink=198  skill=0-0
+Migrant arrived: Aban
+  [T=4000] alive=13 idle=3 train=0  dig=2 chop=0 haul=2 craft=0  wood=10 stone=70 food=200 drink=197  skill=0-0
+T=4032  Stage: E. Corridor             alive=13
+Sheep harvested for meat
+Migrant arrived: Zulban
+Migrant arrived: Momuz
+  [T=4500] alive=15 idle=3 train=0  dig=1 chop=0 haul=7 craft=0  wood=10 stone=94 food=200 drink=197  skill=0-0
+T=4848  Stage: Workshop Wing           alive=15
+Sheep harvested for meat
+  [T=5000] alive=15 idle=4 train=0  dig=51 chop=0 haul=3 craft=0  wood=10 stone=96 food=125 drink=197  skill=0-0
+Migrant arrived: Likot
+Migrant arrived: Erush
+Migrant arrived: Nish
+  [T=5500] alive=18 idle=4 train=0  dig=45 chop=0 haul=3 craft=0  wood=10 stone=105 food=185 drink=197  skill=0-0
+Sheep harvested for meat
+Migrant arrived: Ducim
+Migrant arrived: Bembul
+  [T=6000] alive=20 idle=4 train=0  dig=35 chop=0 haul=4 craft=0  wood=10 stone=113 food=200 drink=197  skill=0-0
+Sheep harvested for meat
+  [T=6500] alive=20 idle=4 train=0  dig=34 chop=0 haul=1 craft=0  wood=10 stone=113 food=145 drink=196  skill=0-0
+Sheep harvested for meat
+  [T=7000] alive=20 idle=4 train=0  dig=34 chop=0 haul=1 craft=0  wood=10 stone=113 food=50 drink=195  skill=0-0
+  [T=7500] alive=20 idle=4 train=0  dig=34 chop=0 haul=0 craft=0  wood=10 stone=115 food=196 drink=196  skill=0-0
+  [T=8000] alive=20 idle=5 train=0  dig=28 chop=0 haul=8 craft=0  wood=10 stone=128 food=200 drink=195  skill=0-0
+  [T=8500] alive=20 idle=6 train=0  dig=18 chop=0 haul=6 craft=0  wood=10 stone=144 food=183 drink=196  skill=0-0
+Goblin ambush!
+  [T=9000] alive=20 idle=5 train=0  dig=1 chop=0 haul=5 craft=0  wood=10 stone=156 food=200 drink=195  skill=0-0
+T=9192  Stage: Spring                  alive=20
+T=9193  Stage: Summer                  alive=20
+  [T=9500] alive=20 idle=4 train=0  dig=2 chop=0 haul=10 craft=16  wood=10 stone=155 food=194 drink=196  skill=0-0
+T=10000  Stage: Autumn                  alive=20
+  [T=10000] alive=20 idle=5 train=0  dig=3 chop=0 haul=8 craft=16  wood=11 stone=156 food=200 drink=195  skill=0-0
+  [T=10500] alive=20 idle=5 train=0  dig=2 chop=0 haul=10 craft=16  wood=11 stone=159 food=172 drink=196  skill=0-0
+Temple complete
+T=11000  Stage: Winter                  alive=20
+  [T=11000] alive=20 idle=5 train=2  dig=0 chop=0 haul=12 craft=16  wood=11 stone=164 food=163 drink=190  skill=0-5
+T=11366  Stukos died of starvation  (H:100 T:29 F:64  supply food=0 drink=1)
+T=11368  Fikod died of starvation  (H:100 T:33 F:66  supply food=0 drink=0)
+T=11371  Urist died of starvation  (H:100 T:45 F:53  supply food=0 drink=5)
+T=11371  Rigoth died of starvation  (H:100 T:49 F:38  supply food=0 drink=5)
+T=11371  Likot died of starvation  (H:100 T:45 F:69  supply food=0 drink=5)
+T=11371  Nish died of starvation  (H:100 T:39 F:69  supply food=0 drink=5)
+T=11372  Kadol died of starvation  (H:100 T:47 F:73  supply food=0 drink=5)
+T=11373  Meng died of starvation  (H:100 T:52 F:73  supply food=0 drink=5)
+T=11373  Sibrek died of starvation  (H:100 T:78 F:53  supply food=0 drink=5)
+T=11374  Bomrek died of starvation  (H:100 T:44 F:64  supply food=0 drink=2)
+T=11374  Erush died of starvation  (H:100 T:40 F:82  supply food=0 drink=2)
+T=11375  Ducim died of starvation  (H:100 T:57 F:70  supply food=0 drink=2)
+T=11375  Bembul died of starvation  (H:100 T:61 F:71  supply food=0 drink=2)
+T=11377  Datan died of starvation  (H:100 T:62 F:66  supply food=0 drink=2)
+T=11377  Udib died of starvation  (H:100 T:48 F:58  supply food=0 drink=2)
+T=11378  Onget died of starvation  (H:100 T:48 F:75  supply food=0 drink=2)
+T=11378  Momuz died of starvation  (H:100 T:49 F:70  supply food=0 drink=2)
+T=11403  Aban died of starvation  (H:100 T:32 F:46  supply food=0 drink=12)
+T=11403  Zulban died of starvation  (H:100 T:63 F:20  supply food=0 drink=12)
+T=11406  Vucar died of starvation  (H:100 T:34 F:64  supply food=0 drink=12)
+T=11406  *** FORTRESS FALLEN: starvation ***
+T=11406  End. alive=0/20  stage=Winter

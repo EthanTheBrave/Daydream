@@ -1,0 +1,51 @@
+T=   0  Stage: Arriving
+T=   6  Stage: Digging Entrance        alive=7
+T= 343  Stage: Digging Main Hall       alive=7
+Migrant arrived: Udib
+  [T= 500] alive=8 idle=0  dig=47 chop=2 haul=5 craft=0  wood=5 food=74 drink=22
+  [T=1000] alive=5 idle=1  dig=36 chop=1 haul=24 craft=1  wood=7 food=80 drink=6
+T=1102  Stage: Furnishing Hall         alive=5
+Migrant arrived: Rigoth
+Migrant arrived: Onget
+T=1477  Stage: N. Corridor             alive=6
+  [T=1500] alive=6 idle=0  dig=44 chop=1 haul=4 craft=7  wood=1 food=80 drink=5
+T=1760  Stage: Stockpile Room          alive=3
+Migrant arrived: Kadol
+  [T=2000] alive=4 idle=3  dig=65 chop=1 haul=13 craft=7  wood=1 food=80 drink=67
+  [T=2500] alive=4 idle=3  dig=48 chop=1 haul=14 craft=7  wood=1 food=80 drink=75
+Migrant arrived: Vucar
+Migrant arrived: Aban
+Migrant arrived: Zulban
+T=2826  Stage: S. Corridor             alive=7
+  [T=3000] alive=7 idle=1  dig=40 chop=1 haul=20 craft=7  wood=1 food=80 drink=65
+T=3121  Stage: Bedrooms                alive=7
+  [T=3500] alive=7 idle=3  dig=61 chop=1 haul=20 craft=7  wood=1 food=78 drink=28
+Migrant arrived: Momuz
+Migrant arrived: Likot
+  [T=4000] alive=5 idle=1  dig=45 chop=1 haul=20 craft=7  wood=2 food=80 drink=7
+T=4290  Stage: Furnishing Beds         alive=5
+Migrant arrived: Erush
+Migrant arrived: Nish
+Migrant arrived: Ducim
+  [T=4500] alive=8 idle=4  dig=35 chop=0 haul=18 craft=13  wood=3 food=78 drink=11
+T=4913  Stage: E. Corridor             alive=4
+  [T=5000] alive=4 idle=1  dig=41 chop=0 haul=2 craft=13  wood=3 food=80 drink=27
+T=5192  Stage: Workshop Wing           alive=4
+Migrant arrived: Bembul
+Migrant arrived: Urist
+Migrant arrived: Bomrek
+  [T=5500] alive=7 idle=2  dig=65 chop=0 haul=14 craft=13  wood=3 food=78 drink=25
+Migrant arrived: Meng
+Migrant arrived: Datan
+  [T=6000] alive=6 idle=2  dig=63 chop=0 haul=20 craft=13  wood=3 food=80 drink=13
+  [T=6500] alive=6 idle=1  dig=59 chop=0 haul=20 craft=13  wood=3 food=79 drink=5
+  [T=7000] alive=5 idle=2  dig=53 chop=0 haul=20 craft=13  wood=3 food=80 drink=11
+  [T=7500] alive=5 idle=0  dig=50 chop=0 haul=20 craft=13  wood=3 food=80 drink=28
+  [T=8000] alive=5 idle=2  dig=47 chop=0 haul=20 craft=13  wood=3 food=80 drink=41
+  [T=8500] alive=5 idle=3  dig=46 chop=0 haul=20 craft=13  wood=3 food=79 drink=56
+T=8870  Stage: Spring                  alive=5
+  [T=9000] alive=5 idle=0  dig=35 chop=0 haul=20 craft=16  wood=3 food=80 drink=74
+  [T=9500] alive=5 idle=3  dig=35 chop=0 haul=10 craft=16  wood=3 food=79 drink=75
+T=9870  Stage: Summer                  alive=5
+  [T=10000] alive=5 idle=3  dig=35 chop=0 haul=10 craft=16  wood=3 food=80 drink=77
+T=10000  End. alive=5/24  stage=Summer

@@ -5,6 +5,7 @@
 #include "fortplan.h"
 #include "config.h"
 #include "renderer.h"
+#include "pathfind.h"
 #include <Arduino.h>
 #include <string.h>
 
@@ -134,24 +135,34 @@ static void moveGoblin(int idx) {
         return;
     }
 
-    // Step toward target — greedy move
-    int bestX = g.x, bestY = g.y, bestDist = dist;
-    static const int8_t dx[4] = {1,-1,0,0};
-    static const int8_t dy[4] = {0,0,1,-1};
-    for (int d = 0; d < 4; d++) {
-        int nx = g.x + dx[d];
-        int ny = g.y + dy[d];
-        if (!mapInBounds(nx, ny)) continue;
-        if (!mapPassable(nx, ny)) continue;
-        int nd = abs(target.x - nx) + abs(target.y - ny);
-        if (nd < bestDist) { bestDist = nd; bestX = nx; bestY = ny; }
+    // Pathfind to target — recompute when path exhausted or on schedule
+    bool needRepath = (g.pathLen == 0 || g.pathPos >= g.pathLen);
+    if (!needRepath && g.repathCounter == 0) needRepath = true;
+
+    if (needRepath) {
+        int plen = pathFind(g.x, g.y, target.x, target.y,
+                            g.pathX, g.pathY, GOBLIN_MAX_PATH);
+        g.pathLen = (uint8_t)(plen < GOBLIN_MAX_PATH ? plen : GOBLIN_MAX_PATH);
+        g.pathPos = 0;
+        g.repathCounter = GOBLIN_REPATH_INTERVAL;
+    } else {
+        g.repathCounter--;
     }
 
-    if (bestX != g.x || bestY != g.y) {
-        mapMarkDirty(g.x, g.y);
-        g.lastX = g.x; g.lastY = g.y;
-        g.x = (int8_t)bestX; g.y = (int8_t)bestY;
-        mapMarkDirty(g.x, g.y);
+    // Advance one step along path
+    if (g.pathPos < g.pathLen) {
+        int nx = g.pathX[g.pathPos];
+        int ny = g.pathY[g.pathPos];
+        if (mapPassable(nx, ny)) {
+            mapMarkDirty(g.x, g.y);
+            g.lastX = g.x; g.lastY = g.y;
+            g.x = (int8_t)nx; g.y = (int8_t)ny;
+            mapMarkDirty(g.x, g.y);
+            g.pathPos++;
+        } else {
+            // Path invalidated (e.g. door closed); force repath next move
+            g.pathLen = 0;
+        }
     }
 }
 

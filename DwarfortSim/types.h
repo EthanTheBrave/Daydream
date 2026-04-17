@@ -216,6 +216,9 @@ enum DwarfState : uint8_t {
     DS_FETCHING = 9,   // moving to stockpile to pick up craft material
     DS_TRAINING = 10,  // moving to/training in barracks
     DS_PRAYING  = 11,  // walking to / praying at shrine
+    DS_COMBAT   = 12,  // pursuing and engaging a goblin
+    DS_TANTRUM  = 13,  // throwing a tantrum — attacks nearby dwarves
+    DS_DEFEND   = 14,  // defending against a tantrum-throwing dwarf
 };
 
 struct Dwarf {

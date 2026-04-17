@@ -112,13 +112,19 @@ static void tileVisual(int x, int y, char* ch, uint16_t* fg, uint16_t* bg) {
     // Dwarf — count how many are on this tile (pass-through allows stacking)
     {
         int dwCount = 0;
-        for (int i = 0; i < gNumDwarves; i++)
-            if (gDwarves[i].active && gDwarves[i].x == x && gDwarves[i].y == y)
-                dwCount++;
+        bool hasTantrum = false;
+        for (int i = 0; i < gNumDwarves; i++) {
+            if (!gDwarves[i].active || gDwarves[i].x != x || gDwarves[i].y != y) continue;
+            dwCount++;
+            if (gDwarves[i].state == DS_TANTRUM) hasTantrum = true;
+        }
         if (dwCount > 0) {
-            *ch = '\x01';
-            // Slow flash (every 4 ticks) when multiple dwarves share a tile
-            *fg = (dwCount > 1 && (gTick % 4) < 2) ? C_WHITE : C_YELLOW;
+            if (hasTantrum) {
+                *ch = '\x02'; *fg = C_MAGENTA;  // ☻ — tantrum dwarf
+            } else {
+                *ch = '\x01';
+                *fg = (dwCount > 1 && (gTick % 4) < 2) ? C_WHITE : C_YELLOW;
+            }
             return;
         }
     }

@@ -93,7 +93,7 @@
 #define MAX_SURFACE_TREES     12   // hard cap on trees on the surface at once
 
 // --- Mushroom farms ------------------------------------------------
-#define MUSHROOM_GROW_INTERVAL 15  // ticks between mushroom spawns per farm plot
+#define MUSHROOM_GROW_INTERVAL  8  // ticks between mushroom spawns per farm plot
 #define MAX_MUSHROOMS_STOCKPILE 20 // stop growing if this many mushrooms in stockpile
 
 // --- Tomb (dug when a dwarf dies) ----------------------------------
@@ -142,8 +142,21 @@
 // --- Prayer --------------------------------------------------------
 #define PRAYER_TICKS          30   // ticks per prayer session at shrine
 #define MAX_HAPPINESS         40   // max happiness value
-#define HAPPINESS_DECAY       80   // ticks between happiness -1
+#define HAPPINESS_DECAY      150   // ticks between happiness -1
 #define EAT_HALL_HAPPINESS     2   // happiness gained per meal eaten at a furnished hall table
+#define BEER_DRINK_HAPPINESS   3   // happiness gained per beer consumed
+#define WATER_DRINK_HAPPINESS  1   // happiness lost per water drink (very slight)
+
+// --- Unhappiness / Tantrum -----------------------------------------
+#define UNHAPPY_THRESHOLD     15   // happiness below this = unhappy (work 50% slower)
+#define UNHAPPY_WORK_PENALTY   2   // extra work ticks added when unhappy
+#define TANTRUM_DURATION      80   // ticks a tantrum lasts if dwarf survives
+#define TANTRUM_ATTACK_DAMAGE 20   // hunger+thirst spike dealt per tantrum hit
+#define TANTRUM_DEFEND_DAMAGE 25   // hunger+thirst spike dealt to tantrum dwarf by defenders
+
+// --- Supply caps (prevents indefinite free accumulation) -----------
+#define MAX_FOOD_SUPPLY      400   // foraging stops adding food above this
+#define MAX_DRINK_SUPPLY     400   // stream collection stops adding drink above this
 
 // --- Fishing -------------------------------------------------------
 #define FISH_TICKS            15   // ticks per fishing attempt

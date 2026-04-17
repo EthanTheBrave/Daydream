@@ -1,0 +1,60 @@
+T=   0  Stage: Arriving
+T=   6  Stage: Digging Entrance        alive=7
+T= 343  Stage: Digging Main Hall       alive=7
+Migrant arrived: Udib
+  [T= 500] alive=8 idle=0 train=0  dig=47 chop=2 haul=5 craft=0  wood=5 stone=3 food=74 drink=22  skill=0-0
+  [T=1000] alive=5 idle=1 train=0  dig=1 chop=1 haul=24 craft=1  wood=7 stone=24 food=80 drink=6  skill=0-0
+T=1102  Stage: Furnishing Hall         alive=5
+Migrant arrived: Rigoth
+Migrant arrived: Onget
+T=1477  Stage: N. Corridor             alive=6
+  [T=1500] alive=6 idle=0 train=0  dig=9 chop=1 haul=4 craft=7  wood=1 stone=24 food=80 drink=5  skill=0-0
+T=1760  Stage: Stockpile Room          alive=3
+Migrant arrived: Kadol
+  [T=2000] alive=4 idle=3 train=0  dig=30 chop=1 haul=13 craft=7  wood=1 stone=36 food=80 drink=67  skill=0-0
+  [T=2500] alive=4 idle=3 train=0  dig=13 chop=1 haul=14 craft=7  wood=1 stone=43 food=80 drink=75  skill=0-0
+Migrant arrived: Vucar
+Migrant arrived: Aban
+Migrant arrived: Zulban
+T=2826  Stage: S. Corridor             alive=7
+  [T=3000] alive=7 idle=1 train=0  dig=5 chop=1 haul=20 craft=7  wood=1 stone=52 food=80 drink=65  skill=0-0
+T=3121  Stage: Bedrooms                alive=7
+  [T=3500] alive=7 idle=3 train=0  dig=26 chop=1 haul=20 craft=7  wood=1 stone=63 food=78 drink=28  skill=0-0
+Migrant arrived: Momuz
+Migrant arrived: Likot
+  [T=4000] alive=5 idle=1 train=0  dig=10 chop=1 haul=20 craft=7  wood=2 stone=69 food=80 drink=7  skill=0-0
+T=4290  Stage: Furnishing Beds         alive=5
+Migrant arrived: Erush
+Migrant arrived: Nish
+Migrant arrived: Ducim
+  [T=4500] alive=8 idle=4 train=0  dig=0 chop=0 haul=18 craft=13  wood=3 stone=74 food=78 drink=11  skill=0-0
+T=4913  Stage: E. Corridor             alive=4
+  [T=5000] alive=4 idle=1 train=0  dig=6 chop=0 haul=2 craft=13  wood=3 stone=76 food=80 drink=27  skill=0-0
+T=5192  Stage: Workshop Wing           alive=4
+Migrant arrived: Bembul
+Migrant arrived: Urist
+Migrant arrived: Bomrek
+  [T=5500] alive=7 idle=2 train=0  dig=31 chop=0 haul=12 craft=13  wood=3 stone=86 food=78 drink=25  skill=0-0
+Migrant arrived: Meng
+Migrant arrived: Datan
+  [T=6000] alive=6 idle=2 train=0  dig=28 chop=0 haul=19 craft=13  wood=3 stone=93 food=80 drink=13  skill=0-0
+  [T=6500] alive=6 idle=1 train=0  dig=24 chop=0 haul=20 craft=13  wood=3 stone=104 food=79 drink=5  skill=0-0
+  [T=7000] alive=5 idle=2 train=0  dig=18 chop=0 haul=20 craft=13  wood=3 stone=113 food=80 drink=11  skill=0-0
+  [T=7500] alive=5 idle=0 train=0  dig=15 chop=0 haul=20 craft=13  wood=3 stone=120 food=80 drink=28  skill=0-0
+  [T=8000] alive=5 idle=2 train=0  dig=12 chop=0 haul=20 craft=13  wood=3 stone=132 food=80 drink=41  skill=0-0
+  [T=8500] alive=5 idle=3 train=0  dig=14 chop=0 haul=20 craft=13  wood=3 stone=142 food=79 drink=56  skill=0-0
+Goblin ambush!
+Goblin ambush!
+  [T=9000] alive=4 idle=0 train=0  dig=12 chop=0 haul=20 craft=13  wood=3 stone=148 food=80 drink=80  skill=0-0
+  [T=9500] BFS test from each alive dwarf to (44,13):
+    Momuz (0,24): pathTo(44,13)=0  pathFindAdj(44,12)=0
+    Erush (0,1): pathTo(44,13)=0  pathFindAdj(44,12)=0
+    Meng (0,22): pathTo(44,13)=0  pathFindAdj(44,12)=0
+    Datan (0,21): pathTo(44,13)=0  pathFindAdj(44,12)=0
+  [T=9500] alive=4 idle=2 train=0  dig=12 chop=0 haul=20 craft=13  wood=3 stone=148 food=80 drink=78  skill=0-0
+  [T=10000] alive=4 idle=2 train=0  dig=12 chop=0 haul=20 craft=13  wood=3 stone=148 food=80 drink=79  skill=0-0
+  [T=10500] alive=4 idle=0 train=0  dig=12 chop=0 haul=20 craft=13  wood=3 stone=148 food=80 drink=80  skill=0-0
+  [T=11000] alive=4 idle=2 train=0  dig=12 chop=0 haul=20 craft=13  wood=3 stone=148 food=80 drink=79  skill=0-0
+  [T=11500] alive=4 idle=2 train=0  dig=12 chop=0 haul=20 craft=13  wood=3 stone=148 food=80 drink=78  skill=0-0
+  [T=12000] alive=4 idle=0 train=0  dig=12 chop=0 haul=20 craft=13  wood=3 stone=148 food=80 drink=80  skill=0-0
+T=12000  End. alive=4/24  stage=Workshop Wing

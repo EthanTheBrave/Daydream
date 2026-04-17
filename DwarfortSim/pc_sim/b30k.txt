@@ -1,0 +1,159 @@
+Seed: 1775907524
+T=   0  Stage: Arriving
+T=   6  Stage: Digging Entrance        alive=7
+T= 115  Stage: Digging Main Hall       alive=7
+Migrant arrived: Udib
+Migrant arrived: Rigoth
+Migrant arrived: Onget
+  [T= 500] alive=10 idle=0 train=0  dig=7 chop=0 haul=21 craft=0  wood=6 stone=19 food=95 drink=100  skill=0-0
+  [T=1000] alive=10 idle=1 train=0  dig=1 chop=0 haul=1 craft=0  wood=5 stone=21 food=100 drink=100  skill=0-0
+Migrant arrived: Kadol
+  [T=1500] alive=11 idle=0 train=0  dig=1 chop=0 haul=1 craft=0  wood=5 stone=21 food=99 drink=100  skill=0-0
+Migrant arrived: Vucar
+Migrant arrived: Aban
+Migrant arrived: Zulban
+  [T=2000] DIG STALL — 1 tasks stuck:
+    task(18,17) claimed=1  adj: N(18,16)=1 E(19,17)=1 S(18,18)=0 W(17,17)=1
+      Claimed by Vucar at (0,16) state=1
+    Urist (16,16) state=3 task=-1
+    Bomrek (9,13) state=0 task=-1
+    Meng (18,16) state=5 task=-1
+    Datan (6,13) state=5 task=-1
+    Sibrek (18,15) state=4 task=-1
+    Fikod (17,15) state=4 task=-1
+    Stukos (9,7) state=5 task=-1
+    Udib (9,15) state=5 task=-1
+    Rigoth (17,16) state=4 task=-1
+    Onget (9,14) state=3 task=-1
+    Kadol (9,12) state=4 task=-1
+    Vucar (0,16) state=1 task=71
+    Aban (0,13) state=1 task=95
+    Zulban (0,10) state=0 task=-1
+  [T=2000] alive=14 idle=2 train=0  dig=1 chop=0 haul=1 craft=0  wood=5 stone=21 food=100 drink=100  skill=0-0
+  [T=2500] alive=14 idle=1 train=0  dig=1 chop=0 haul=1 craft=0  wood=5 stone=21 food=93 drink=99  skill=0-0
+Migrant arrived: Momuz
+Migrant arrived: Likot
+T=2890  Stage: N. Corridor             alive=16
+  [T=3000] alive=16 idle=2 train=0  dig=7 chop=0 haul=14 craft=0  wood=4 stone=20 food=100 drink=99  skill=0-0
+T=3115  Stage: Stockpile Room          alive=16
+  [T=3500] alive=16 idle=1 train=0  dig=10 chop=0 haul=12 craft=0  wood=4 stone=40 food=93 drink=99  skill=0-0
+Migrant arrived: Erush
+T=3750  Stage: S. Corridor             alive=17
+  [T=4000] alive=17 idle=1 train=0  dig=2 chop=0 haul=2 craft=0  wood=4 stone=47 food=99 drink=99  skill=0-0
+T=4030  Stage: Bedrooms                alive=17
+Migrant arrived: Nish
+Migrant arrived: Ducim
+  [T=4500] alive=19 idle=2 train=0  dig=22 chop=0 haul=1 craft=0  wood=4 stone=55 food=93 drink=98  skill=0-0
+  [T=5000] alive=19 idle=2 train=0  dig=9 chop=0 haul=3 craft=0  wood=4 stone=61 food=99 drink=98  skill=0-0
+Migrant arrived: Bembul
+  [T=5500] alive=20 idle=2 train=0  dig=2 chop=0 haul=1 craft=0  wood=4 stone=64 food=88 drink=97  skill=0-0
+T=5990  Stage: Furnishing Beds         alive=20
+  [T=6000] alive=20 idle=2 train=0  dig=0 chop=0 haul=2 craft=2  wood=4 stone=66 food=100 drink=98  skill=0-0
+T=6391  Stage: E. Corridor             alive=20
+  [T=6500] alive=20 idle=2 train=0  dig=8 chop=9 haul=16 craft=2  wood=8 stone=70 food=89 drink=97  skill=0-0
+T=6689  Stage: Workshop Wing           alive=20
+  [T=7000] alive=20 idle=2 train=0  dig=32 chop=1 haul=7 craft=2  wood=13 stone=77 food=96 drink=98  skill=0-0
+  [T=7500] alive=20 idle=2 train=0  dig=24 chop=0 haul=10 craft=2  wood=13 stone=94 food=93 drink=97  skill=0-0
+  [T=8000] DIG STALL — 24 tasks stuck:
+    task(34,16) claimed=0  adj: N(34,15)=1 E(35,16)=0 S(34,17)=0 W(33,16)=0
+    task(32,16) claimed=0  adj: N(32,15)=1 E(33,16)=0 S(32,17)=0 W(31,16)=0
+    task(33,13) claimed=0  adj: N(33,12)=0 E(34,13)=0 S(33,14)=1 W(32,13)=1
+    task(32,12) claimed=1  adj: N(32,11)=0 E(33,12)=0 S(32,13)=1 W(31,12)=0
+      Claimed by Bomrek at (32,14) state=1
+    task(33,16) claimed=0  adj: N(33,15)=1 E(34,16)=0 S(33,17)=0 W(32,16)=0
+    task(34,14) claimed=0  adj: N(34,13)=0 E(35,14)=0 S(34,15)=1 W(33,14)=1
+    task(35,14) claimed=0  adj: N(35,13)=0 E(36,14)=0 S(35,15)=0 W(34,14)=0
+    task(36,14) claimed=0  adj: N(36,13)=0 E(37,14)=0 S(36,15)=0 W(35,14)=0
+    task(37,14) claimed=0  adj: N(37,13)=0 E(38,14)=0 S(37,15)=0 W(36,14)=0
+    task(38,14) claimed=0  adj: N(38,13)=0 E(39,14)=0 S(38,15)=0 W(37,14)=0
+    task(39,14) claimed=0  adj: N(39,13)=0 E(40,14)=0 S(39,15)=0 W(38,14)=0
+    task(40,14) claimed=0  adj: N(40,13)=0 E(41,14)=0 S(40,15)=0 W(39,14)=0
+    task(41,14) claimed=0  adj: N(41,13)=0 E(42,14)=0 S(41,15)=0 W(40,14)=0
+    task(42,14) claimed=0  adj: N(42,13)=0 E(43,14)=0 S(42,15)=0 W(41,14)=0
+    task(43,14) claimed=0  adj: N(43,13)=0 E(44,14)=0 S(43,15)=0 W(42,14)=0
+    task(44,14) claimed=0  adj: N(44,13)=0 E(45,14)=0 S(44,15)=0 W(43,14)=0
+    task(45,14) claimed=0  adj: N(45,13)=0 E(46,14)=0 S(45,15)=0 W(44,14)=0
+    task(46,14) claimed=0  adj: N(46,13)=0 E(47,14)=0 S(46,15)=0 W(45,14)=0
+    task(47,14) claimed=0  adj: N(47,13)=0 E(48,14)=0 S(47,15)=0 W(46,14)=0
+    task(48,14) claimed=0  adj: N(48,13)=0 E(49,14)=0 S(48,15)=0 W(47,14)=0
+    task(49,14) claimed=0  adj: N(49,13)=0 E(50,14)=0 S(49,15)=0 W(48,14)=0
+    task(50,14) claimed=0  adj: N(50,13)=0 E(51,14)=0 S(50,15)=0 W(49,14)=0
+    task(51,14) claimed=0  adj: N(51,13)=0 E(52,14)=0 S(51,15)=0 W(50,14)=0
+    task(52,14) claimed=0  adj: N(52,13)=0 E(53,14)=0 S(52,15)=0 W(51,14)=0
+    Urist (16,12) state=3 task=-1
+    Bomrek (32,14) state=1 task=9
+    Meng (23,14) state=5 task=-1
+    Datan (18,14) state=5 task=-1
+    Sibrek (28,14) state=4 task=-1
+    Fikod (24,14) state=4 task=-1
+    Stukos (29,14) state=5 task=-1
+    Udib (25,15) state=5 task=-1
+    Rigoth (26,14) state=4 task=-1
+    Onget (20,14) state=3 task=-1
+    Kadol (16,13) state=4 task=-1
+    Vucar (19,14) state=3 task=-1
+    Aban (31,14) state=0 task=-1
+    Zulban (25,14) state=4 task=-1
+    Momuz (32,13) state=4 task=-1
+    Likot (21,14) state=4 task=-1
+    Erush (28,13) state=5 task=-1
+    Nish (22,14) state=4 task=-1
+    Ducim (25,16) state=0 task=-1
+    Bembul (29,13) state=3 task=-1
+  [T=8000] alive=20 idle=2 train=0  dig=24 chop=0 haul=10 craft=2  wood=11 stone=99 food=99 drink=98  skill=0-0
+  [T=8500] alive=20 idle=2 train=0  dig=18 chop=0 haul=7 craft=2  wood=8 stone=103 food=88 drink=97  skill=0-0
+  [T=9000] alive=20 idle=2 train=0  dig=19 chop=0 haul=7 craft=2  wood=7 stone=104 food=100 drink=98  skill=0-0
+  [T=9500] alive=20 idle=2 train=0  dig=20 chop=0 haul=8 craft=2  wood=4 stone=103 food=89 drink=97  skill=0-0
+  [T=10000] alive=20 idle=2 train=0  dig=13 chop=0 haul=7 craft=2  wood=4 stone=111 food=96 drink=98  skill=0-0
+  [T=10500] alive=20 idle=2 train=0  dig=16 chop=0 haul=10 craft=2  wood=4 stone=116 food=93 drink=97  skill=0-0
+  [T=11000] alive=20 idle=2 train=0  dig=10 chop=0 haul=14 craft=2  wood=5 stone=121 food=99 drink=98  skill=0-0
+  [T=11500] alive=20 idle=2 train=0  dig=10 chop=9 haul=7 craft=2  wood=5 stone=121 food=88 drink=97  skill=0-0
+  [T=12000] DIG STALL — 10 tasks stuck:
+    task(43,14) claimed=0  adj: N(43,13)=0 E(44,14)=0 S(43,15)=0 W(42,14)=1
+    task(44,14) claimed=0  adj: N(44,13)=0 E(45,14)=0 S(44,15)=0 W(43,14)=0
+    task(45,14) claimed=0  adj: N(45,13)=0 E(46,14)=0 S(45,15)=0 W(44,14)=0
+    task(46,14) claimed=0  adj: N(46,13)=0 E(47,14)=0 S(46,15)=0 W(45,14)=0
+    task(47,14) claimed=0  adj: N(47,13)=0 E(48,14)=0 S(47,15)=0 W(46,14)=0
+    task(48,14) claimed=0  adj: N(48,13)=0 E(49,14)=0 S(48,15)=0 W(47,14)=0
+    task(49,14) claimed=0  adj: N(49,13)=0 E(50,14)=0 S(49,15)=0 W(48,14)=0
+    task(50,14) claimed=0  adj: N(50,13)=0 E(51,14)=0 S(50,15)=0 W(49,14)=0
+    task(51,14) claimed=0  adj: N(51,13)=0 E(52,14)=0 S(51,15)=0 W(50,14)=0
+    task(52,14) claimed=0  adj: N(52,13)=0 E(53,14)=0 S(52,15)=0 W(51,14)=0
+    Urist (16,11) state=3 task=-1
+    Bomrek (36,15) state=1 task=0
+    Meng (24,14) state=5 task=-1
+    Datan (37,15) state=5 task=-1
+    Sibrek (36,14) state=4 task=-1
+    Fikod (37,14) state=4 task=-1
+    Stukos (37,13) state=5 task=-1
+    Udib (34,14) state=5 task=-1
+    Rigoth (40,14) state=4 task=-1
+    Onget (32,14) state=3 task=-1
+    Kadol (15,10) state=4 task=-1
+    Vucar (33,14) state=3 task=-1
+    Aban (41,16) state=0 task=-1
+    Zulban (40,15) state=4 task=-1
+    Momuz (38,14) state=4 task=-1
+    Likot (41,14) state=4 task=-1
+    Erush (41,15) state=5 task=-1
+    Nish (16,10) state=4 task=-1
+    Ducim (39,14) state=0 task=-1
+    Bembul (35,14) state=3 task=-1
+  [T=12000] alive=20 idle=2 train=0  dig=10 chop=4 haul=9 craft=2  wood=9 stone=121 food=100 drink=98  skill=0-0
+  [T=12500] alive=20 idle=2 train=0  dig=10 chop=4 haul=7 craft=2  wood=6 stone=123 food=89 drink=97  skill=0-0
+  [T=13000] alive=20 idle=2 train=0  dig=13 chop=1 haul=9 craft=2  wood=8 stone=123 food=96 drink=98  skill=0-0
+  [T=13500] alive=20 idle=2 train=0  dig=2 chop=0 haul=10 craft=2  wood=11 stone=134 food=93 drink=97  skill=0-0
+T=13570  Stage: Spring                  alive=20
+  [T=14000] alive=20 idle=2 train=1  dig=0 chop=0 haul=9 craft=11  wood=11 stone=139 food=99 drink=98  skill=0-3
+  [T=14500] alive=20 idle=2 train=2  dig=0 chop=0 haul=10 craft=11  wood=11 stone=138 food=88 drink=97  skill=0-10
+T=14570  Stage: Summer                  alive=20
+  [T=15000] alive=20 idle=2 train=1  dig=0 chop=0 haul=12 craft=11  wood=11 stone=136 food=100 drink=98  skill=0-17
+  [T=15500] alive=20 idle=2 train=1  dig=0 chop=0 haul=11 craft=11  wood=11 stone=137 food=89 drink=97  skill=0-24
+T=15570  Stage: Autumn                  alive=20
+  [T=16000] alive=20 idle=2 train=1  dig=0 chop=0 haul=10 craft=11  wood=11 stone=137 food=96 drink=98  skill=0-39
+  [T=16500] alive=20 idle=2 train=1  dig=0 chop=0 haul=11 craft=11  wood=11 stone=136 food=93 drink=97  skill=0-41
+T=16570  Stage: Winter                  alive=20
+  [T=17000] alive=20 idle=2 train=2  dig=0 chop=0 haul=11 craft=11  wood=11 stone=138 food=99 drink=98  skill=0-41
+  [T=17500] alive=20 idle=2 train=0  dig=0 chop=0 haul=12 craft=11  wood=11 stone=136 food=88 drink=97  skill=0-41
+T=17570  *** FORTRESS VICTORIOUS — survived 4 seasons, 20 dwarves alive ***
+T=17570  End. alive=20/20  stage=Winter

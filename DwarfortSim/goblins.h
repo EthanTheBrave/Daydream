@@ -18,6 +18,8 @@
 #define GOBLIN_MOVE_INTERVAL      2   // ticks between goblin moves
 #define GOBLIN_ATTACK_DAMAGE     30   // hunger+thirst spike on hit (simulates injury)
 #define GOBLIN_DESPAWN_TICKS    200   // ticks before a goblin gives up and leaves
+#define GOBLIN_MAX_PATH          80   // max path length for goblin BFS
+#define GOBLIN_REPATH_INTERVAL   12   // recompute path every N moves
 
 struct Goblin {
     int8_t  x, y;
@@ -25,6 +27,11 @@ struct Goblin {
     uint8_t moveTimer;
     uint8_t despawnTimer;
     bool    active;
+    int8_t  pathX[GOBLIN_MAX_PATH];
+    int8_t  pathY[GOBLIN_MAX_PATH];
+    uint8_t pathLen;
+    uint8_t pathPos;
+    uint8_t repathCounter;  // counts down; recomputes path at 0
 };
 
 extern Goblin gGoblins[MAX_GOBLINS];

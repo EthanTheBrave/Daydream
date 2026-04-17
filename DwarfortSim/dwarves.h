@@ -6,7 +6,8 @@ extern int   gNumDwarves;
 
 // Global food/drink supplies (simplified — not stored on map tiles)
 extern int   gFoodSupply;
-extern int   gDrinkSupply;
+extern int   gDrinkSupply;   // stream water
+extern int   gBeerSupply;    // brewed beer (drunk preferentially; boosts happiness)
 
 void dwarfInit(int count, int startX, int startY);
 

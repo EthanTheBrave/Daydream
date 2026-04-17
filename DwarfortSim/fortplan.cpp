@@ -46,7 +46,7 @@ static void computeLayout() {
 
     // ---- Stockpile: 10–14 wide, 3–4 tall, above N corridor ----
     int stockW = 10 + 2 * random(0, 3);  // 10, 12, or 14 tiles — fills north space
-    int stockH = 3 + random(0, 2);
+    int stockH = 5 + random(0, 2);  // 5–6 tiles — 2 more rows north
     sPX1 = sHallCx - stockW / 2;
     sPX2 = sPX1 + stockW - 1;
     sPY2 = sNY1 - 1;
@@ -648,7 +648,8 @@ static void manageFarms() {
 //  Mushroom processing management (runs in FS_DONE)
 // ----------------------------------------------------------------
 static void manageMushProcessing() {
-    int mushCount = mapCountItemGlobal(ITEM_MUSHROOM);
+    // Only count mushrooms in the stockpile — farm-tile mushrooms not yet hauled can't be used
+    int mushCount = mapCountItemInZone(gStockX1, gStockY1, gStockX2, gStockY2, ITEM_MUSHROOM);
     if (mushCount < 2) return;
 
     int kx = (FORT_WS_KITCH_X1+FORT_WS_KITCH_X2)/2;
@@ -656,14 +657,14 @@ static void manageMushProcessing() {
     int sx = (FORT_WS_STILL_X1+FORT_WS_STILL_X2)/2;
     int sy = (FORT_WS_STILL_Y1+FORT_WS_STILL_Y2)/2;
 
-    // Queue Kitchen cooking when food drops below 500
-    if (gFoodSupply < 500 && !taskExistsCraft(CRAFT_MUSHROOM_FOOD)
+    // Queue Kitchen cooking when food drops below 300 (cap is 400, so don't cook constantly)
+    if (gFoodSupply < 300 && !taskExistsCraft(CRAFT_MUSHROOM_FOOD)
         && mapPassable(kx, ky)) {
         int ti = taskAdd(TASK_CRAFT, kx, ky);
         if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_MUSHROOM_FOOD;
     }
-    // Queue Still brewing when drink drops below 500
-    if (gDrinkSupply < 500 && !taskExistsCraft(CRAFT_MUSHROOM_BEER)
+    // Queue Still brewing when beer drops below threshold (beer tracked separately)
+    if (gBeerSupply < 150 && !taskExistsCraft(CRAFT_MUSHROOM_BEER)
         && mapPassable(sx, sy)) {
         int ti = taskAdd(TASK_CRAFT, sx, sy);
         if (ti >= 0) gTasks[ti].auxType = (uint8_t)CRAFT_MUSHROOM_BEER;
@@ -914,7 +915,7 @@ void fortPlanTick() {
         if (fortReady && gSeason == 3)      amount = FORAGE_FOOD_AMOUNT / 4; // winter: 25% (small game)
         else if (fortReady && gSeason == 2) amount = FORAGE_FOOD_AMOUNT / 2; // autumn: half
         else                                amount = FORAGE_FOOD_AMOUNT;     // spring/summer: full
-        if (amount > 0)
+        if (amount > 0 && gFoodSupply < MAX_FOOD_SUPPLY)
             gFoodSupply += amount;
     }
     // Drink from stream — halved in winter (frozen stream), normal otherwise.
@@ -925,7 +926,8 @@ void fortPlanTick() {
         int amount = (gFortStage >= FS_DONE && gSeason == 3)
                      ? COLLECT_DRINK_AMOUNT / 2
                      : COLLECT_DRINK_AMOUNT;
-        gDrinkSupply += amount;
+        if (gDrinkSupply < MAX_DRINK_SUPPLY)
+            gDrinkSupply += amount;
     }
 
     // Sync physical barrel items with supply levels (every 5 ticks)

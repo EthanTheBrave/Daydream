@@ -45,6 +45,7 @@ struct SaveGlobals {
     uint32_t tick;
     int32_t  foodSupply;
     int32_t  drinkSupply;
+    int32_t  beerSupply;
     uint8_t  fortStage;
     uint8_t  season;
     uint32_t doneTick;
@@ -150,6 +151,7 @@ bool saveGame() {
     g.tick         = gTick;
     g.foodSupply   = (int32_t)gFoodSupply;
     g.drinkSupply  = (int32_t)gDrinkSupply;
+    g.beerSupply   = (int32_t)gBeerSupply;
     g.fortStage    = (uint8_t)gFortStage;
     g.season       = gSeason;
     g.doneTick     = gDoneTick;
@@ -239,6 +241,7 @@ bool loadGame() {
     gTick         = g.tick;
     gFoodSupply   = (int)g.foodSupply;
     gDrinkSupply  = (int)g.drinkSupply;
+    gBeerSupply   = (int)g.beerSupply;
     gFortStage    = (FortStage)g.fortStage;
     gSeason       = g.season;
     gDoneTick     = g.doneTick;

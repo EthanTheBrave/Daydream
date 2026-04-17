@@ -4,6 +4,7 @@
 #include "pathfind.h"
 #include "fortplan.h"
 #include "renderer.h"
+#include "goblins.h"
 #include "config.h"
 #include <Arduino.h>
 #include <string.h>
@@ -12,6 +13,7 @@ Dwarf gDwarves[MAX_DWARVES];
 int   gNumDwarves = 0;
 int   gFoodSupply  = START_FOOD;
 int   gDrinkSupply = START_DRINK;
+int   gBeerSupply  = 0;
 
 static const char* kNames[20] = {
     "Urist","Bomrek","Meng","Datan","Sibrek",
@@ -41,6 +43,7 @@ static void initOneDwarf(int idx, int spawnX, int spawnY) {
     d.combatSkill = 0;
     d.hasAxe      = false;
     d.hasArmor    = false;
+    d.happiness   = (uint8_t)(30 + random(0, 11));  // 30-40, staggered so they don't all tantrum at once
     strncpy(d.name, kNames[gNameIdx % 20], 9);
     gNameIdx++;
     mapMarkDirty(d.x, d.y);
@@ -236,10 +239,21 @@ static void tickDwarf(int idx) {
         } \
     } while(0)
 
+    // ---- Tantrum trigger: happiness hits 0 ----
+    if (d.happiness == 0 && d.state != DS_TANTRUM) {
+        UNCLAIM_TASK();
+        d.state    = DS_TANTRUM;
+        d.workLeft = TANTRUM_DURATION;
+        char tbuf[53];
+        snprintf(tbuf, sizeof(tbuf), "%s has thrown a tantrum!", d.name);
+        tickerPush(tbuf);
+        Serial.print("TANTRUM: "); Serial.println(d.name);
+    }
+
     // ---- Critical needs override current task ----
     // DS_SLEEPING during movement phase must still respond to hunger/thirst
-    if (d.state != DS_EATING && d.state != DS_DRINKING) {
-        if (d.thirst >= THIRST_THRESH && gDrinkSupply > 0) {
+    if (d.state != DS_EATING && d.state != DS_DRINKING && d.state != DS_TANTRUM) {
+        if (d.thirst >= THIRST_THRESH && (gDrinkSupply + gBeerSupply) > 0) {
             UNCLAIM_TASK();
             d.state    = DS_DRINKING;
             d.workLeft = DRINK_TICKS;
@@ -251,7 +265,7 @@ static void tickDwarf(int idx) {
             d.pathPos = 0;
             return;
         }
-        if (d.hunger >= HUNGER_THRESH && gFoodSupply > 0) {
+        if (d.hunger >= HUNGER_THRESH && gFoodSupply > 0 && d.state != DS_TANTRUM) {
             UNCLAIM_TASK();
             d.state    = DS_EATING;
             d.workLeft = EAT_TICKS;
@@ -283,6 +297,48 @@ static void tickDwarf(int idx) {
                                     d.pathX, d.pathY, MAX_PATH_LEN);
                 if (plen > 0) { d.pathLen = (uint8_t)plen; d.pathPos = 0; }
             }
+            return;
+        }
+    }
+
+    // ---- Goblin threat: interrupt non-survival tasks to fight ----
+    if (d.state != DS_EATING && d.state != DS_DRINKING
+        && d.state != DS_SLEEPING && d.state != DS_COMBAT
+        && d.state != DS_TANTRUM) {
+        int nearestGobIdx = -1, nearestGobDist = 9999;
+        for (int gi = 0; gi < gNumGoblins; gi++) {
+            if (!gGoblins[gi].active) continue;
+            int dist = abs(gGoblins[gi].x - d.x) + abs(gGoblins[gi].y - d.y);
+            if (dist < nearestGobDist) { nearestGobDist = dist; nearestGobIdx = gi; }
+        }
+        if (nearestGobIdx >= 0) {
+            Goblin& tg = gGoblins[nearestGobIdx];
+            UNCLAIM_TASK();
+            int plen = pathFind(d.x, d.y, tg.x, tg.y, d.pathX, d.pathY, MAX_PATH_LEN);
+            d.pathLen = (plen > 0) ? (uint8_t)plen : 0;
+            d.pathPos = 0;
+            d.state = DS_COMBAT;
+            return;
+        }
+    }
+
+    // ---- Tantrum defense: dwarves fight back against a tantrum thrower ----
+    if (d.state != DS_EATING && d.state != DS_DRINKING && d.state != DS_SLEEPING
+        && d.state != DS_COMBAT && d.state != DS_TANTRUM && d.state != DS_DEFEND) {
+        int tantrumIdx = -1, tantrumDist = 9999;
+        for (int j = 0; j < gNumDwarves; j++) {
+            if (j == idx || !gDwarves[j].active || gDwarves[j].dead) continue;
+            if (gDwarves[j].state != DS_TANTRUM) continue;
+            int dist = abs(gDwarves[j].x - d.x) + abs(gDwarves[j].y - d.y);
+            if (dist < tantrumDist) { tantrumDist = dist; tantrumIdx = j; }
+        }
+        if (tantrumIdx >= 0) {
+            UNCLAIM_TASK();
+            Dwarf& tt = gDwarves[tantrumIdx];
+            int plen = pathFind(d.x, d.y, tt.x, tt.y, d.pathX, d.pathY, MAX_PATH_LEN);
+            d.pathLen = (plen > 0) ? (uint8_t)plen : 0;
+            d.pathPos = 0;
+            d.state = DS_DEFEND;
             return;
         }
     }
@@ -430,7 +486,13 @@ static void tickDwarf(int idx) {
         CraftType fct = (CraftType)ft.auxType;
         int woodCost  = craftWoodCost(fct);
         int ironCost  = craftIronCost(fct);
-        ItemType need = (woodCost > 0) ? ITEM_WOOD : (ironCost > 0) ? ITEM_IRON_ORE : ITEM_STONE;
+        int mushCost  = craftMushroomCost(fct);
+        int stoneCost = craftStoneCost(fct);
+        ItemType need = (woodCost  > 0) ? ITEM_WOOD
+                      : (ironCost  > 0) ? ITEM_IRON_ORE
+                      : (mushCost  > 0) ? ITEM_MUSHROOM
+                      : (stoneCost > 0) ? ITEM_STONE
+                      : ITEM_STONE;
 
         int ix = -1, iy = -1;
         for (int sy2 = gStockY1; sy2 <= gStockY2 && ix < 0; sy2++)
@@ -507,6 +569,9 @@ static void tickDwarf(int idx) {
         if (d.pathPos >= d.pathLen) {
             d.state    = DS_WORKING;
             d.workLeft = gTasks[d.taskIdx].workNeeded;
+            // Unhappy dwarves work slower
+            if (d.happiness < UNHAPPY_THRESHOLD)
+                d.workLeft = (uint8_t)min(255, (int)d.workLeft + UNHAPPY_WORK_PENALTY);
             break;
         }
         // Movement timeout: if we've spent too long travelling, release the task
@@ -581,12 +646,13 @@ static void tickDwarf(int idx) {
             if (mushCost > 0) {
                 // Mushroom processing (Kitchen / Still)
                 if (!mapConsumeFromStockpile(ITEM_MUSHROOM, mushCost)) {
-                    taskUnclaim(d.taskIdx); d.taskIdx=-1; d.state=DS_IDLE; break;
+                    // Mark done (not just unclaim) so a fresh task can be queued when mushrooms arrive
+                    taskComplete(d.taskIdx); d.taskIdx=-1; d.state=DS_IDLE; break;
                 }
                 if (ct == CRAFT_MUSHROOM_FOOD)
                     gFoodSupply  += 3;
                 else
-                    gDrinkSupply += 3;
+                    gBeerSupply  += 15;  // beer, not water
             } else {
                 // Dwarf physically carried the primary material (in d.carrying)
                 if (d.carrying == ITEM_NONE) {
@@ -714,7 +780,9 @@ static void tickDwarf(int idx) {
         if (gFoodSupply > 0) {
             gFoodSupply--;
             d.hunger = (uint8_t)max(0, (int)d.hunger - EAT_RESTORE);
-            // Bonus happiness for eating at a furnished table
+            // Any meal gives +1 happiness; eating at a furnished table adds more
+            if (d.happiness < MAX_HAPPINESS)
+                d.happiness = (uint8_t)min((int)MAX_HAPPINESS, (int)d.happiness + 1);
             if (d.placeFurn && d.happiness < MAX_HAPPINESS)
                 d.happiness = (uint8_t)min((int)MAX_HAPPINESS,
                                            (int)d.happiness + EAT_HALL_HAPPINESS);
@@ -730,10 +798,23 @@ static void tickDwarf(int idx) {
         if (d.pathPos < d.pathLen) { dwarfMove(idx); break; }
         // Phase 2: drink
         if (d.workLeft > 0) { d.workLeft--; break; }
-        if (gDrinkSupply > 0) {
-            gDrinkSupply--;
+        if (gBeerSupply > 0 || gDrinkSupply > 0) {
+            // Prefer beer; fall back to stream water
+            bool drinkBeer = (gBeerSupply > 0);
+            if (drinkBeer) {
+                gBeerSupply--;
+                // Beer boosts happiness
+                if (d.happiness < MAX_HAPPINESS)
+                    d.happiness = (uint8_t)min((int)MAX_HAPPINESS,
+                                               (int)d.happiness + BEER_DRINK_HAPPINESS);
+            } else {
+                gDrinkSupply--;
+                // Plain water is slightly demoralising once dwarves know beer exists
+                if (gBeerSupply > 0 && d.happiness > 0 && random(0, 10) == 0)
+                    d.happiness--;
+            }
             d.thirst = (uint8_t)max(0, (int)d.thirst - DRINK_RESTORE);
-            // Bonus happiness for drinking at a furnished table
+            // Extra happiness bonus for drinking at a furnished table
             if (d.placeFurn && d.happiness < MAX_HAPPINESS)
                 d.happiness = (uint8_t)min((int)MAX_HAPPINESS,
                                            (int)d.happiness + EAT_HALL_HAPPINESS);
@@ -768,6 +849,120 @@ static void tickDwarf(int idx) {
         }
         d.state = DS_IDLE;
         d.pathLen = 0; d.pathPos = 0;
+        break;
+    }
+
+    // ---- COMBAT ----
+    case DS_COMBAT: {
+        // Find nearest active goblin
+        int nearestGobIdx = -1, nearestGobDist = 9999;
+        for (int gi = 0; gi < gNumGoblins; gi++) {
+            if (!gGoblins[gi].active) continue;
+            int dist = abs(gGoblins[gi].x - d.x) + abs(gGoblins[gi].y - d.y);
+            if (dist < nearestGobDist) { nearestGobDist = dist; nearestGobIdx = gi; }
+        }
+        // No more goblins — stand down
+        if (nearestGobIdx < 0) { d.state = DS_IDLE; break; }
+
+        Goblin& tg = gGoblins[nearestGobIdx];
+
+        // Adjacent — strike!
+        if (nearestGobDist <= 1) {
+            int dmg = 20 + (d.combatSkill * 40 / COMBAT_SKILL_MAX);
+            if (d.hasAxe) dmg += AXE_COUNTER_DESPAWN;
+            tg.despawnTimer = (tg.despawnTimer > (uint8_t)dmg)
+                              ? tg.despawnTimer - (uint8_t)dmg : 0;
+            if (tg.despawnTimer == 0) {
+                tg.active = false;
+                mapMarkDirty(tg.x, tg.y);
+                mapAddBlood(tg.x, tg.y);
+                char buf[53];
+                snprintf(buf, sizeof(buf), "%s slays a goblin!", d.name);
+                tickerPush(buf);
+            }
+            d.state = DS_IDLE;  // combat interrupt re-engages next tick if more goblins
+            break;
+        }
+
+        // Repath if we've exhausted current path (goblin moved)
+        if (d.pathPos >= d.pathLen) {
+            int plen = pathFind(d.x, d.y, tg.x, tg.y, d.pathX, d.pathY, MAX_PATH_LEN);
+            d.pathLen = (plen > 0) ? (uint8_t)plen : 0;
+            d.pathPos = 0;
+            if (plen == 0) { d.state = DS_IDLE; break; }
+        }
+        dwarfMove(idx);
+        break;
+    }
+
+    // ---- TANTRUM ----
+    case DS_TANTRUM: {
+        if (d.workLeft > 0) d.workLeft--;
+        if (d.workLeft == 0) {
+            // Survived — calm down, happiness resets
+            d.happiness = 30;
+            d.state = DS_IDLE;
+            char cbuf[53];
+            snprintf(cbuf, sizeof(cbuf), "%s has calmed down.", d.name);
+            tickerPush(cbuf);
+            break;
+        }
+        // Find nearest non-tantrum dwarf to attack
+        int tgtIdx = -1, tgtDist = 9999;
+        for (int j = 0; j < gNumDwarves; j++) {
+            if (j == idx || !gDwarves[j].active || gDwarves[j].dead) continue;
+            if (gDwarves[j].state == DS_TANTRUM) continue;
+            int dist = abs(gDwarves[j].x - d.x) + abs(gDwarves[j].y - d.y);
+            if (dist < tgtDist) { tgtDist = dist; tgtIdx = j; }
+        }
+        if (tgtIdx < 0) break;
+        Dwarf& victim = gDwarves[tgtIdx];
+        if (tgtDist <= 1) {
+            // Strike!
+            victim.hunger = (uint8_t)min(100, (int)victim.hunger + TANTRUM_ATTACK_DAMAGE);
+            victim.thirst = (uint8_t)min(100, (int)victim.thirst + TANTRUM_ATTACK_DAMAGE);
+            mapAddBlood(victim.x, victim.y);
+        } else {
+            // Chase
+            if (d.pathPos >= d.pathLen) {
+                int plen = pathFind(d.x, d.y, victim.x, victim.y,
+                                    d.pathX, d.pathY, MAX_PATH_LEN);
+                d.pathLen = (plen > 0) ? (uint8_t)plen : 0;
+                d.pathPos = 0;
+            }
+            if (d.pathPos < d.pathLen) dwarfMove(idx);
+        }
+        break;
+    }
+
+    // ---- DEFEND (fighting a tantrum dwarf) ----
+    case DS_DEFEND: {
+        // Find nearest tantrum dwarf
+        int tgtIdx2 = -1, tgtDist2 = 9999;
+        for (int j = 0; j < gNumDwarves; j++) {
+            if (j == idx || !gDwarves[j].active || gDwarves[j].dead) continue;
+            if (gDwarves[j].state != DS_TANTRUM) continue;
+            int dist = abs(gDwarves[j].x - d.x) + abs(gDwarves[j].y - d.y);
+            if (dist < tgtDist2) { tgtDist2 = dist; tgtIdx2 = j; }
+        }
+        if (tgtIdx2 < 0) { d.state = DS_IDLE; break; }  // tantrum over
+        Dwarf& brawler = gDwarves[tgtIdx2];
+        if (tgtDist2 <= 1) {
+            // Hit back — multiple defenders pile on
+            brawler.hunger = (uint8_t)min(100, (int)brawler.hunger + TANTRUM_DEFEND_DAMAGE);
+            brawler.thirst = (uint8_t)min(100, (int)brawler.thirst + TANTRUM_DEFEND_DAMAGE);
+            mapAddBlood(brawler.x, brawler.y);
+            d.state = DS_IDLE;  // defend interrupt re-engages next tick
+        } else {
+            if (d.pathPos >= d.pathLen) {
+                int plen = pathFind(d.x, d.y, brawler.x, brawler.y,
+                                    d.pathX, d.pathY, MAX_PATH_LEN);
+                d.pathLen = (plen > 0) ? (uint8_t)plen : 0;
+                d.pathPos = 0;
+                if (plen == 0) { d.state = DS_IDLE; break; }
+            }
+            dwarfMove(idx);
+        }
         break;
     }
 
