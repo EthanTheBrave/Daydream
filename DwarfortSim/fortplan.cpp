@@ -495,17 +495,17 @@ static int workshopTotalRemainingDig() {
     return n;
 }
 
-// Designate workshop corridor only — rooms are opened incrementally
-// as corridor tiles become passable (see progressWorkshopDig).
-static void designateAllWorkshops() {
-    fortDesignateRect(FORT_WCORR_X1, FORT_WCORR_Y1, FORT_WCORR_X2, FORT_WCORR_Y2);
-}
+// No-op: the corridor and all rooms are now opened incrementally by progressWorkshopDig.
+static void designateAllWorkshops() {}
 
 // Each tick during FS_WORKSHOPS: designate any wall tile inside a room that
 // has at least one passable neighbour.  Called every tick so newly-dug tiles
 // propagate reachability inward row-by-row with no permanent stalls.
+// The main corridor (WCORR) is included so tasks are only added as they
+// become reachable rather than all at once.
 static void progressWorkshopDig() {
     static const struct { int x1,y1,x2,y2; } kRooms[] = {
+        {FORT_WCORR_X1,    FORT_WCORR_Y1,    FORT_WCORR_X2,    FORT_WCORR_Y2   },
         {FORT_WS_WOOD_X1,  FORT_WS_WOOD_Y1,  FORT_WS_WOOD_X2,  FORT_WS_WOOD_Y2 },
         {FORT_WS_STILL_X1, FORT_WS_STILL_Y1, FORT_WS_STILL_X2, FORT_WS_STILL_Y2},
         {FORT_WS_KITCH_X1, FORT_WS_KITCH_Y1, FORT_WS_KITCH_X2, FORT_WS_KITCH_Y2},
@@ -521,7 +521,7 @@ static void progressWorkshopDig() {
         {FORT_NGALLERY_X1, FORT_NGALLERY_Y,  FORT_NGALLERY_X2, FORT_NGALLERY_Y },
         {FORT_SGALLERY_X1, FORT_SGALLERY_Y,  FORT_SGALLERY_X2, FORT_SGALLERY_Y },
     };
-    static const int kNumRooms = 13;
+    static const int kNumRooms = 14;
     static const int8_t DX[4] = {1,-1,0,0};
     static const int8_t DY[4] = {0,0,1,-1};
 
@@ -543,6 +543,26 @@ static void progressWorkshopDig() {
                     taskAdd(TASK_DIG, x, y);
                 }
             }
+        }
+    }
+
+    // Safety net: if a dig task has timed out 8+ times without progress,
+    // force-complete it so the workshop wing can always finish.
+    for (int i = 0; i < gTaskCount; i++) {
+        Task& t = gTasks[i];
+        if (t.done || t.claimed || t.type != TASK_DIG) continue;
+        if (t.stuckCount < 8) continue;
+        int tx = t.x, ty = t.y;
+        if (mapGet(tx, ty) != TILE_WALL) { taskComplete(i); continue; }
+        bool hasPassable = false;
+        for (int d = 0; d < 4 && !hasPassable; d++) {
+            int nx = tx + DX[d], ny = ty + DY[d];
+            if (mapInBounds(nx, ny) && mapPassable(nx, ny)) hasPassable = true;
+        }
+        if (hasPassable) {
+            mapSet(tx, ty, TILE_FLOOR);
+            mapDesignate(tx, ty, false);
+            taskComplete(i);
         }
     }
 }
@@ -1092,6 +1112,7 @@ void fortPlanTick() {
         break;
 
     case FS_DONE:
+        progressWorkshopDig(); // runs the stuck-task cleanup even after workshop completion
         manageFurnishBed();   // finish any remaining beds (may have timed out earlier)
         manageFurnishHall();  // hall furniture crafted at woodworker workshop
         manageFarms();

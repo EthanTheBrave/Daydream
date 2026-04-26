@@ -15,11 +15,13 @@ int   gFoodSupply  = START_FOOD;
 int   gDrinkSupply = START_DRINK;
 int   gBeerSupply  = 0;
 
-static const char* kNames[20] = {
+static const char* kNames[30] = {
     "Urist","Bomrek","Meng","Datan","Sibrek",
     "Fikod","Stukos","Udib","Rigoth","Onget",
     "Kadol","Vucar","Aban","Zulban","Momuz",
-    "Likot","Erush","Nish","Ducim","Bembul"
+    "Likot","Erush","Nish","Ducim","Bembul",
+    "Thikut","Kogan","Ast","Logem","Kib",
+    "Rith","Tirist","Steth","Sodel","Catten"
 };
 static int gNameIdx = 0;  // cycles through names for new migrants
 
@@ -44,7 +46,7 @@ static void initOneDwarf(int idx, int spawnX, int spawnY) {
     d.hasAxe      = false;
     d.hasArmor    = false;
     d.happiness   = (uint8_t)(30 + random(0, 11));  // 30-40, staggered so they don't all tantrum at once
-    strncpy(d.name, kNames[gNameIdx % 20], 9);
+    strncpy(d.name, kNames[gNameIdx % 30], 9);
     gNameIdx++;
     mapMarkDirty(d.x, d.y);
 }
@@ -439,6 +441,27 @@ static void tickDwarf(int idx) {
             }
         }
 
+        // Idle flavour: occasional muttered observations when truly at leisure
+        if (d.idleTicks >= 20 && random(0, 80) == 0) {
+            static const char* kFlavour[] = {
+                " hums a mining tune.",
+                " mutters about the rations.",
+                " sharpens their pick.",
+                " admires their own handiwork.",
+                " scratches a tally on the wall.",
+                " sighs heavily.",
+                " stares blankly at a wall.",
+                " counts their fingers.",
+                " naps upright.",
+                " contemplates the stone.",
+            };
+            static const int kNumFlavour = 10;
+            char buf[53];
+            snprintf(buf, sizeof(buf), "%s%s", d.name,
+                     kFlavour[random(0, kNumFlavour)]);
+            tickerPush(buf);
+        }
+
         // No work — wander; bias toward hall tiles when the hall exists
         if (d.idleTicks >= 4) {
             d.idleTicks = 0;
@@ -577,6 +600,8 @@ static void tickDwarf(int idx) {
         // Movement timeout: if we've spent too long travelling, release the task
         // so a closer dwarf can claim it. workLeft counts down from pathLen*2.
         if (d.workLeft == 0) {
+            if (gTasks[d.taskIdx].type == TASK_DIG)
+                gTasks[d.taskIdx].stuckCount = (uint8_t)min(255, (int)gTasks[d.taskIdx].stuckCount + 1);
             taskUnclaim(d.taskIdx); d.taskIdx = -1;
             d.pathLen = 0; d.state = DS_IDLE;
             break;

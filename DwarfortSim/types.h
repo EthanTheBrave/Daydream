@@ -198,6 +198,7 @@ struct Task {
     bool     done;
     uint8_t  workNeeded;
     uint8_t  auxType;       // CraftType for CRAFT, ItemType for PLACE_FURN
+    uint8_t  stuckCount;    // incremented on movement timeout; triggers force-dig at threshold
 };
 
 // ----------------------------------------------------------------

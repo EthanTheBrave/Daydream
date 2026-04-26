@@ -19,7 +19,7 @@
 #endif
 
 static const uint32_t SAVE_MAGIC   = 0x44574654; // 'DWFT'
-static const uint8_t  SAVE_VERSION = 2;
+static const uint8_t  SAVE_VERSION = 3;
 
 // ----------------------------------------------------------------
 //  Compact dwarf — strips the two 200-byte path arrays
